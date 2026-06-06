@@ -1,0 +1,61 @@
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # ユーザーDB（MySQL）
+  # テーブル構造は user-dashboard の Prisma migrate deploy が管理する
+  # ──────────────────────────────────────────────────────────────────────────────
+  user-db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${USER_DB_NAME}
+      MYSQL_USER: ${USER_DB_USER}
+      MYSQL_PASSWORD: ${USER_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${USER_DB_ROOT_PASSWORD}
+    volumes:
+      - user-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${USER_DB_USER}", "-p${USER_DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # user-dashboard（Next.js）
+  # 起動時に docker-entrypoint.sh が Prisma migrate deploy を実行する
+  # character-api へは character-db-net 経由でアクセスする
+  # （前提: character-db-infra と character-api-go-infra が起動済みであること）
+  # ──────────────────────────────────────────────────────────────────────────────
+  user-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-db:3306/${USER_DB_NAME}"
+      CHARACTER_API_URL: "http://character-api:8080"
+      CHARACTER_API_KEY: ${INTERNAL_API_KEY}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # NODE_ENV=production では Auth.js が Host ヘッダーを既定で信頼しないため
+      # （UntrustedHost エラー）、ローカル docker 環境では明示的に信頼させる
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - default
+      - character-db-net
+    restart: unless-stopped
+
+volumes:
+  user-db-data:
+
+networks:
+  character-db-net:
+    external: true
+    name: character-db-net

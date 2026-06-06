@@ -13,17 +13,33 @@ generator client {
 // ── NextAuth.js 必須モデル ──────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
+  id            String          @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String          @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  characters    UserCharacter[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@map("users")
+}
+
+// キャラクターAPIで作成したキャラクターとユーザーの紐付け。
+// characterId はcharacter-db側のUUIDをそのまま保持する（外部キーなし）。
+model UserCharacter {
+  id          String   @id @default(cuid())
+  userId      String
+  characterId String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, characterId])
+  @@index([userId])
+  @@map("user_characters")
 }
 
 model Account {

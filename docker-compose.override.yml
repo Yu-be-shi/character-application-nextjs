@@ -1,0 +1,7 @@
+# ローカル開発用のオーバーライド設定
+# このファイルは docker compose up 時に自動的に読み込まれる
+
+services:
+  user-db:
+    ports:
+      - "3306:3306"

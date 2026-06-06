@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { characterClient } from "@/lib/character-client";
 import Link from "next/link";
 
@@ -11,46 +8,14 @@ const GENDER_LABEL: Record<string, string> = {
   unknown: "不明",
 };
 
-export default async function MyCharactersPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const userChars = await prisma.userCharacter.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const settled = await Promise.allSettled(
-    userChars.map((uc) => characterClient.get(uc.characterId))
-  );
-  const characters = settled
-    .filter((r) => r.status === "fulfilled")
-    .map((r) => (r as PromiseFulfilledResult<Awaited<ReturnType<typeof characterClient.get>>>).value);
+export default async function GalleryPage() {
+  const characters = await characterClient.list();
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
-        }}
-      >
-        <h1 style={{ fontSize: "24px", fontWeight: 700 }}>マイキャラクター</h1>
-        <Link
-          href="/characters/new"
-          style={{
-            padding: "8px 16px",
-            background: "#0070f3",
-            color: "#fff",
-            borderRadius: "6px",
-            fontWeight: 500,
-          }}
-        >
-          ＋ 新規作成
-        </Link>
-      </div>
+      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "24px" }}>
+        ギャラリー
+      </h1>
 
       {characters.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "#6c757d" }}>
@@ -77,7 +42,6 @@ export default async function MyCharactersPage() {
                     borderRadius: "8px",
                     padding: "16px",
                     background: "#fff",
-                    transition: "box-shadow 0.15s",
                   }}
                 >
                   <h3 style={{ fontWeight: 600, marginBottom: "4px" }}>{c.name}</h3>
