@@ -8,6 +8,14 @@ export type Character = {
   raceId: string;
   race: string;
   gender: "male" | "female" | "other" | "unknown";
+  birthDate?: string;
+  birthPlace?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bodyFatPercentage?: number;
+  sizeTop?: number;
+  sizeMiddle?: number;
+  sizeBottom?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -22,6 +30,14 @@ export type CreateCharacterInput = {
   description?: string;
   raceId: string;
   gender: string;
+  birthDate?: string;
+  birthPlace?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bodyFatPercentage?: number;
+  sizeTop?: number;
+  sizeMiddle?: number;
+  sizeBottom?: number;
 };
 
 export type UpdateCharacterInput = Partial<CreateCharacterInput>;

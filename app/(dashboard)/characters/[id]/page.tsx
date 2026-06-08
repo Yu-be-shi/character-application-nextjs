@@ -39,6 +39,16 @@ export default async function CharacterDetailPage({
     if (!session?.user?.id) throw new Error("Unauthorized");
 
     const charId = formData.get("characterId") as string;
+
+    // 所有者本人のみ削除できる（編集ページと同様に紐付けを再確認する）。
+    // UI でボタンを隠すだけでなくサーバー側でも検証し、なりすまし削除を防ぐ。
+    const owned = await prisma.userCharacter.findUnique({
+      where: {
+        userId_characterId: { userId: session.user.id, characterId: charId },
+      },
+    });
+    if (!owned) throw new Error("Forbidden");
+
     await characterClient.delete(charId);
     await prisma.userCharacter.deleteMany({ where: { characterId: charId } });
     redirect("/characters");

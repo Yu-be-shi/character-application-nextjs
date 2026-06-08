@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:types": "openapi-typescript http://character-api:8080/swagger/doc.json -o lib/api-types.gen.ts"
   },
   "dependencies": {
     "next": "^15.1.0",
@@ -23,6 +24,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.1.0",
+    "openapi-typescript": "^7.0.0",
     "prisma": "^6.2.0",
     "typescript": "^5.7.0"
   }
