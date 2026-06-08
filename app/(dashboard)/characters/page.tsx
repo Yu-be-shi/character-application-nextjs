@@ -20,12 +20,14 @@ export default async function MyCharactersPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const settled = await Promise.allSettled(
-    userChars.map((uc) => characterClient.get(uc.characterId))
-  );
-  const characters = settled
-    .filter((r) => r.status === "fulfilled")
-    .map((r) => (r as PromiseFulfilledResult<Awaited<ReturnType<typeof characterClient.get>>>).value);
+  // 所有 ID だけをバッチ取得（API 呼び出しは1回・必要な行のみ。旧実装の N+1 を回避）。
+  // userChars の順序（作成日の降順）を保ったまま並べる。
+  const ownedIds = userChars.map((uc) => uc.characterId);
+  const owned = await characterClient.list({ ids: ownedIds });
+  const byId = new Map(owned.map((c) => [c.id, c]));
+  const characters = userChars
+    .map((uc) => byId.get(uc.characterId))
+    .filter((c): c is NonNullable<typeof c> => c != null);
 
   return (
     <div>

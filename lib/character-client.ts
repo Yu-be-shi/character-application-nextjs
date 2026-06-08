@@ -64,8 +64,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export type ListParams = { ids?: string[]; limit?: number; offset?: number };
+
 export const characterClient = {
-  list: () => request<Character[]>("/api/v1/characters"),
+  // ids 指定でバッチ取得（N+1 回避）/ limit・offset でページング。
+  // ids が空配列なら API を呼ばず空を返す（所有0件で全件取得しないため）。
+  list: (params?: ListParams) => {
+    if (params?.ids && params.ids.length === 0) {
+      return Promise.resolve<Character[]>([]);
+    }
+    const qs = new URLSearchParams();
+    if (params?.ids?.length) qs.set("ids", params.ids.join(","));
+    if (params?.limit != null) qs.set("limit", String(params.limit));
+    if (params?.offset != null) qs.set("offset", String(params.offset));
+    const q = qs.toString();
+    return request<Character[]>(`/api/v1/characters${q ? `?${q}` : ""}`);
+  },
   get: (id: string) => request<Character>(`/api/v1/characters/${id}`),
   create: (input: CreateCharacterInput) =>
     request<Character>("/api/v1/characters", {
