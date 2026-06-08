@@ -38,12 +38,19 @@ export default async function NewCharacterPage() {
       sizeBottom: sizeBottomStr ? Number(sizeBottomStr) : undefined,
     });
 
-    await prisma.userCharacter.create({
-      data: {
-        userId: session.user.id,
-        characterId: character.id,
-      },
-    });
+    // API 作成と所有権紐付けは別ストアへの2段書き込み。後段が失敗したら、
+    // 作成済みキャラクターを削除して整合を保つ（孤児キャラ防止の補償処理）。
+    try {
+      await prisma.userCharacter.create({
+        data: {
+          userId: session.user.id,
+          characterId: character.id,
+        },
+      });
+    } catch (e) {
+      await characterClient.delete(character.id).catch(() => {});
+      throw e;
+    }
 
     redirect("/characters");
   }

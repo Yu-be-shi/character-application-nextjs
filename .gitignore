@@ -7,3 +7,4 @@ node_modules/
 .env.production.local
 
 lib/api-types.gen.ts
+tsconfig.tsbuildinfo
