@@ -23,9 +23,12 @@ export default async function NewCharacterPage() {
     const parsed = parseCharacterForm(formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
+    // フォームが生成した冪等キー（二重送信を API 側で重複排除）。
+    const idempotencyKey = (formData.get("idempotencyKey") as string) || undefined;
+
     let character;
     try {
-      character = await characterClient.create(parsed.data);
+      character = await characterClient.create(parsed.data, idempotencyKey);
     } catch (e) {
       console.error("character create failed", e);
       return { error: "キャラクターの作成に失敗しました。時間をおいて再度お試しください。" };
@@ -65,6 +68,7 @@ export default async function NewCharacterPage() {
         races={races}
         submitLabel="作成する"
         cancelHref="/characters"
+        withIdempotencyKey
       />
     </div>
   );

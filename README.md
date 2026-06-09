@@ -27,6 +27,10 @@
   フォーム UI は `components/character-form.tsx` に共通化（検証エラーは `useActionState` で表示）。
 - 新規作成は「API 作成 → `UserCharacter` 紐付け」の2段書き込み。後段が失敗したら作成済みキャラを
   削除して整合を保つ（補償処理。削除も失敗した場合はログに残す）。
+- **並行制御・冪等性**（`lib/character-client.ts`）：編集（PUT）は表示時に読んだ `version` を
+  `If-Match` で送る楽観ロック。API が 412 を返したら「他で更新された」旨を表示する。新規作成は
+  フォームが生成した `Idempotency-Key`（`components/character-form.tsx` の hidden field）を送り、
+  二重送信を API 側で重複排除する。
 
 ## 起動方法
 

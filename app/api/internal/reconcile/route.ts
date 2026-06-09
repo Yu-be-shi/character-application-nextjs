@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const apply = req.nextUrl.searchParams.get("apply") === "1";
   const cutoff = Date.now() - ORPHAN_MIN_AGE_MS;
 
-  const [all, links] = await Promise.all([
+  const [{ items: all }, links] = await Promise.all([
     characterClient.list(),
     prisma.userCharacter.findMany({ select: { characterId: true } }),
   ]);
