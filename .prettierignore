@@ -1,0 +1,9 @@
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+e2e/.auth/
+package-lock.json
+lib/api-types.gen.ts
+prisma/migrations/

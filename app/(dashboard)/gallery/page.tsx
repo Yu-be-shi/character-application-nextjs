@@ -24,9 +24,7 @@ export default async function GalleryPage({
 
   return (
     <div>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "24px" }}>
-        {t("title")}
-      </h1>
+      <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "24px" }}>{t("title")}</h1>
 
       {characters.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "#6c757d" }}>

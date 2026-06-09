@@ -62,9 +62,7 @@ export default async function NewCharacterPage() {
         <Link href="/characters" style={{ fontSize: "13px", color: "#6c757d" }}>
           {td("back")}
         </Link>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, marginTop: "8px" }}>
-          {t("newTitle")}
-        </h1>
+        <h1 style={{ fontSize: "24px", fontWeight: 700, marginTop: "8px" }}>{t("newTitle")}</h1>
       </div>
 
       <CharacterForm

@@ -1,19 +1,23 @@
 # user-dashboard
 
+[![CI](https://github.com/Yu-be-shi/character-application-nextjs/actions/workflows/ci.yml/badge.svg)](https://github.com/Yu-be-shi/character-application-nextjs/actions/workflows/ci.yml)
+[![E2E](https://github.com/Yu-be-shi/character-application-nextjs/actions/workflows/e2e.yml/badge.svg)](https://github.com/Yu-be-shi/character-application-nextjs/actions/workflows/e2e.yml)
+[![CodeQL](https://github.com/Yu-be-shi/character-application-nextjs/actions/workflows/codeql.yml/badge.svg)](https://github.com/Yu-be-shi/character-application-nextjs/actions/workflows/codeql.yml)
+
 ユーザー向けWeb管理画面 + 認証APIのモノリス。
 キャラクターデータの操作は Repo1（character-api）への HTTP リクエスト経由で行う。
 
 ## 技術スタック
 
-| 層 | 技術 |
-|---|---|
-| フレームワーク | Next.js 15（App Router） |
-| 認証 | NextAuth.js v5（Auth.js, Google OAuth） |
-| ORM | Prisma |
-| ユーザーDB | MySQL（`character-db-infra` ではなくこのリポジトリの compose が起動） |
-| キャラクターAPI | `character-api`（Go）へ HTTP リクエスト |
-| 入力検証 | zod（`lib/character-form.ts`） |
-| テスト | vitest（`lib/*.test.ts`） |
+| 層              | 技術                                                                  |
+| --------------- | --------------------------------------------------------------------- |
+| フレームワーク  | Next.js 15（App Router）                                              |
+| 認証            | NextAuth.js v5（Auth.js, Google OAuth）                               |
+| ORM             | Prisma                                                                |
+| ユーザーDB      | MySQL（`character-db-infra` ではなくこのリポジトリの compose が起動） |
+| キャラクターAPI | `character-api`（Go）へ HTTP リクエスト                               |
+| 入力検証        | zod（`lib/character-form.ts`）                                        |
+| テスト          | vitest（`lib/*.test.ts`）                                             |
 
 ## アーキテクチャ上の重要ルール
 
@@ -60,12 +64,12 @@ npx prisma migrate dev
 
 ## 環境変数
 
-| 変数名 | 説明 |
-|---|---|
-| `DATABASE_URL` | MySQL DSN（Prisma が使用） |
-| `AUTH_SECRET` | NextAuth セッション暗号化キー |
-| `AUTH_GOOGLE_ID` | Google OAuth クライアントID |
-| `AUTH_GOOGLE_SECRET` | Google OAuth クライアントシークレット |
-| `CHARACTER_API_URL` | Repo1 の URL（例: `http://character-api:8080`） |
-| `CHARACTER_API_KEY` | Repo1 へのサービス間認証キー（Repo4 の INTERNAL_API_KEY と同じ値） |
-| `NEXTAUTH_URL` | 公開URL（例: `http://localhost:3000`） |
+| 変数名               | 説明                                                               |
+| -------------------- | ------------------------------------------------------------------ |
+| `DATABASE_URL`       | MySQL DSN（Prisma が使用）                                         |
+| `AUTH_SECRET`        | NextAuth セッション暗号化キー                                      |
+| `AUTH_GOOGLE_ID`     | Google OAuth クライアントID                                        |
+| `AUTH_GOOGLE_SECRET` | Google OAuth クライアントシークレット                              |
+| `CHARACTER_API_URL`  | Repo1 の URL（例: `http://character-api:8080`）                    |
+| `CHARACTER_API_KEY`  | Repo1 へのサービス間認証キー（Repo4 の INTERNAL_API_KEY と同じ値） |
+| `NEXTAUTH_URL`       | 公開URL（例: `http://localhost:3000`）                             |

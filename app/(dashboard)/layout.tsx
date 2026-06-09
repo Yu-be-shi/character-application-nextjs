@@ -4,11 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/lib/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session) redirect("/login");
   const t = await getTranslations("nav");
@@ -58,9 +54,7 @@ export default async function DashboardLayout({
           </button>
         </form>
       </nav>
-      <main style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 24px" }}>
-        {children}
-      </main>
+      <main style={{ maxWidth: "960px", margin: "0 auto", padding: "32px 24px" }}>{children}</main>
     </div>
   );
 }

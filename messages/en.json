@@ -1,5 +1,11 @@
 {
-  "common": { "appName": "Character Manager", "appDesc": "Character data management dashboard", "loading": "Loading…", "retry": "Retry", "back": "Back" },
+  "common": {
+    "appName": "Character Manager",
+    "appDesc": "Character data management dashboard",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "back": "Back"
+  },
   "nav": { "gallery": "Gallery", "myCharacters": "My Characters", "logout": "Log out" },
   "login": { "title": "Character Manager", "googleSignIn": "Sign in with Google" },
   "locale": { "label": "Language", "ja": "日本語", "en": "English" },
