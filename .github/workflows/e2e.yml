@@ -6,6 +6,10 @@ on:
 
 # 未ログイン時の認可ガード（保護ページ→ログインへリダイレクト）を検証するスモーク E2E。
 # Google OAuth の実ログインは行わないため API/character-db は不要。MySQL のみ起動してアプリを立てる。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
     runs-on: ubuntu-latest
