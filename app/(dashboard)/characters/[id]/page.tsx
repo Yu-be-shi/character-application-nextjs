@@ -3,7 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { characterClient } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
 import { assertOwnership, isOwner } from "@/lib/authz";
-import { GENDER_LABEL } from "@/lib/constants";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 export default async function CharacterDetailPage({
@@ -13,6 +13,8 @@ export default async function CharacterDetailPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const t = await getTranslations("detail");
+  const tg = await getTranslations("gender");
 
   const { id } = await params;
 
@@ -70,7 +72,7 @@ export default async function CharacterDetailPage({
                 color: "#495057",
               }}
             >
-              編集
+              {t("edit")}
             </Link>
             <form action={handleDelete}>
               <input type="hidden" name="characterId" value={id} />
@@ -85,7 +87,7 @@ export default async function CharacterDetailPage({
                   background: "transparent",
                 }}
               >
-                削除
+                {t("delete")}
               </button>
             </form>
           </div>
@@ -102,14 +104,14 @@ export default async function CharacterDetailPage({
           gap: "16px",
         }}
       >
-        <Row label="種族" value={character.race} />
-        <Row label="性別" value={GENDER_LABEL[character.gender] ?? character.gender} />
+        <Row label={t("race")} value={character.race} />
+        <Row label={t("gender")} value={tg(character.gender)} />
         {character.description && (
-          <Row label="説明" value={character.description} multiline />
+          <Row label={t("description")} value={character.description} multiline />
         )}
         <Row
-          label="作成日"
-          value={new Date(character.createdAt).toLocaleDateString("ja-JP")}
+          label={t("createdAt")}
+          value={new Date(character.createdAt).toLocaleDateString()}
         />
       </div>
     </div>

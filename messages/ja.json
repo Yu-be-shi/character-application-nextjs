@@ -1,0 +1,68 @@
+{
+  "common": { "appName": "キャラクター管理", "appDesc": "キャラクターデータ管理ダッシュボード", "loading": "読み込み中…", "retry": "再試行", "back": "戻る" },
+  "nav": { "gallery": "ギャラリー", "myCharacters": "マイキャラ", "logout": "ログアウト" },
+  "login": { "title": "キャラクター管理", "googleSignIn": "Google でログイン" },
+  "locale": { "label": "言語", "ja": "日本語", "en": "English" },
+  "errors": {
+    "globalTitle": "予期しないエラーが発生しました",
+    "globalDesc": "時間をおいて再度お試しください。",
+    "segTitle": "読み込みに失敗しました",
+    "segDesc": "一時的な問題かもしれません。",
+    "notFoundTitle": "ページが見つかりません",
+    "notFoundDesc": "お探しのページは存在しないか、アクセス権がありません。",
+    "backToCharacters": "マイキャラクターに戻る"
+  },
+  "gender": { "male": "男性", "female": "女性", "other": "その他", "unknown": "不明" },
+  "characters": {
+    "title": "マイキャラクター",
+    "new": "＋ 新規作成",
+    "empty": "まだキャラクターがいません。",
+    "createFirst": "最初のキャラクターを作成する →"
+  },
+  "gallery": {
+    "title": "ギャラリー",
+    "empty": "まだキャラクターがいません。",
+    "emptyPage": "このページにキャラクターはいません。",
+    "createFirst": "最初のキャラクターを作成する →",
+    "pageInfo": "ページ {page} / {totalPages}（全 {total} 件）",
+    "prev": "← 前のページ",
+    "next": "次のページ →"
+  },
+  "detail": {
+    "race": "種族",
+    "gender": "性別",
+    "description": "説明",
+    "createdAt": "作成日",
+    "edit": "編集",
+    "delete": "削除",
+    "back": "← マイキャラクターに戻る"
+  },
+  "form": {
+    "newTitle": "キャラクター新規作成",
+    "editTitle": "キャラクター編集",
+    "name": "名前 *",
+    "race": "種族 *",
+    "raceSelect": "種族を選択",
+    "gender": "性別 *",
+    "birthDate": "生年月日",
+    "birthPlace": "出身地",
+    "height": "身長 (cm)",
+    "weight": "体重 (kg)",
+    "bodyFat": "体脂肪率 (%)",
+    "sizeTop": "サイズ上 (cm)",
+    "sizeMiddle": "サイズ中 (cm)",
+    "sizeBottom": "サイズ下 (cm)",
+    "description": "説明",
+    "submitCreate": "作成する",
+    "submitUpdate": "更新する",
+    "submitting": "送信中...",
+    "cancel": "キャンセル",
+    "backToDetail": "← キャラクター詳細に戻る",
+    "errLogin": "ログインが必要です",
+    "errForbidden": "権限がありません",
+    "errCreate": "キャラクターの作成に失敗しました。時間をおいて再度お試しください。",
+    "errSave": "キャラクターの保存に失敗しました。時間をおいて再度お試しください。",
+    "errUpdate": "更新に失敗しました。時間をおいて再度お試しください。",
+    "errConflict": "このキャラクターは他の操作で更新されました。最新の内容を取得し直してから再度編集してください。"
+  }
+}

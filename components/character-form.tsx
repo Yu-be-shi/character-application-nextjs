@@ -2,7 +2,8 @@
 
 import { useActionState, useRef } from "react";
 import Link from "next/link";
-import { GENDER_OPTIONS } from "@/lib/constants";
+import { useTranslations } from "next-intl";
+import { GENDERS } from "@/lib/constants";
 
 export type Race = { id: string; name: string };
 
@@ -62,17 +63,19 @@ export function CharacterForm({
   action,
   races,
   defaults,
-  submitLabel,
+  mode,
   cancelHref,
   withIdempotencyKey = false,
 }: {
   action: CharacterFormAction;
   races: Race[];
   defaults?: CharacterFormDefaults;
-  submitLabel: string;
+  mode: "create" | "edit";
   cancelHref: string;
   withIdempotencyKey?: boolean;
 }) {
+  const t = useTranslations("form");
+  const tg = useTranslations("gender");
   const [state, formAction, pending] = useActionState<CharacterFormState, FormData>(
     action,
     {},
@@ -108,15 +111,15 @@ export function CharacterForm({
       )}
 
       <div>
-        <label htmlFor="name" style={labelStyle}>名前 *</label>
+        <label htmlFor="name" style={labelStyle}>{t("name")}</label>
         <input id="name" name="name" required maxLength={100} defaultValue={d.name ?? ""} style={inputStyle} />
         <FieldError message={fe.name} />
       </div>
 
       <div>
-        <label htmlFor="raceId" style={labelStyle}>種族 *</label>
+        <label htmlFor="raceId" style={labelStyle}>{t("race")}</label>
         <select id="raceId" name="raceId" required defaultValue={d.raceId ?? ""} style={inputStyle}>
-          <option value="" disabled>種族を選択</option>
+          <option value="" disabled>{t("raceSelect")}</option>
           {races.map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
           ))}
@@ -125,66 +128,66 @@ export function CharacterForm({
       </div>
 
       <div>
-        <label htmlFor="gender" style={labelStyle}>性別 *</label>
+        <label htmlFor="gender" style={labelStyle}>{t("gender")}</label>
         <select id="gender" name="gender" required defaultValue={d.gender ?? "unknown"} style={inputStyle}>
-          {GENDER_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+          {GENDERS.map((g) => (
+            <option key={g} value={g}>{tg(g)}</option>
           ))}
         </select>
         <FieldError message={fe.gender} />
       </div>
 
       <div>
-        <label htmlFor="birthDate" style={labelStyle}>生年月日</label>
+        <label htmlFor="birthDate" style={labelStyle}>{t("birthDate")}</label>
         <input id="birthDate" name="birthDate" type="date" defaultValue={d.birthDate ?? ""} style={inputStyle} />
         <FieldError message={fe.birthDate} />
       </div>
 
       <div>
-        <label htmlFor="birthPlace" style={labelStyle}>出身地</label>
-        <input id="birthPlace" name="birthPlace" maxLength={150} placeholder="出身地" defaultValue={d.birthPlace ?? ""} style={inputStyle} />
+        <label htmlFor="birthPlace" style={labelStyle}>{t("birthPlace")}</label>
+        <input id="birthPlace" name="birthPlace" maxLength={150} defaultValue={d.birthPlace ?? ""} style={inputStyle} />
         <FieldError message={fe.birthPlace} />
       </div>
 
       <div style={{ display: "flex", gap: "12px" }}>
         <div style={{ flex: 1 }}>
-          <label htmlFor="heightCm" style={labelStyle}>身長 (cm)</label>
-          <input id="heightCm" name="heightCm" type="number" min={1} step={1} placeholder="例: 170" defaultValue={d.heightCm ?? ""} style={inputStyle} />
+          <label htmlFor="heightCm" style={labelStyle}>{t("height")}</label>
+          <input id="heightCm" name="heightCm" type="number" min={1} step={1} placeholder="170" defaultValue={d.heightCm ?? ""} style={inputStyle} />
           <FieldError message={fe.heightCm} />
         </div>
         <div style={{ flex: 1 }}>
-          <label htmlFor="weightKg" style={labelStyle}>体重 (kg)</label>
-          <input id="weightKg" name="weightKg" type="number" min={1} step={1} placeholder="例: 60" defaultValue={d.weightKg ?? ""} style={inputStyle} />
+          <label htmlFor="weightKg" style={labelStyle}>{t("weight")}</label>
+          <input id="weightKg" name="weightKg" type="number" min={1} step={1} placeholder="60" defaultValue={d.weightKg ?? ""} style={inputStyle} />
           <FieldError message={fe.weightKg} />
         </div>
       </div>
 
       <div>
-        <label htmlFor="bodyFatPercentage" style={labelStyle}>体脂肪率 (%)</label>
-        <input id="bodyFatPercentage" name="bodyFatPercentage" type="number" min={0} max={100} step={0.1} placeholder="例: 15.0" defaultValue={d.bodyFatPercentage ?? ""} style={inputStyle} />
+        <label htmlFor="bodyFatPercentage" style={labelStyle}>{t("bodyFat")}</label>
+        <input id="bodyFatPercentage" name="bodyFatPercentage" type="number" min={0} max={100} step={0.1} placeholder="15.0" defaultValue={d.bodyFatPercentage ?? ""} style={inputStyle} />
         <FieldError message={fe.bodyFatPercentage} />
       </div>
 
       <div style={{ display: "flex", gap: "12px" }}>
         <div style={{ flex: 1 }}>
-          <label htmlFor="sizeTop" style={labelStyle}>サイズ上 (cm)</label>
-          <input id="sizeTop" name="sizeTop" type="number" min={1} step={1} placeholder="例: 90" defaultValue={d.sizeTop ?? ""} style={inputStyle} />
+          <label htmlFor="sizeTop" style={labelStyle}>{t("sizeTop")}</label>
+          <input id="sizeTop" name="sizeTop" type="number" min={1} step={1} placeholder="90" defaultValue={d.sizeTop ?? ""} style={inputStyle} />
           <FieldError message={fe.sizeTop} />
         </div>
         <div style={{ flex: 1 }}>
-          <label htmlFor="sizeMiddle" style={labelStyle}>サイズ中 (cm)</label>
-          <input id="sizeMiddle" name="sizeMiddle" type="number" min={1} step={1} placeholder="例: 60" defaultValue={d.sizeMiddle ?? ""} style={inputStyle} />
+          <label htmlFor="sizeMiddle" style={labelStyle}>{t("sizeMiddle")}</label>
+          <input id="sizeMiddle" name="sizeMiddle" type="number" min={1} step={1} placeholder="60" defaultValue={d.sizeMiddle ?? ""} style={inputStyle} />
           <FieldError message={fe.sizeMiddle} />
         </div>
         <div style={{ flex: 1 }}>
-          <label htmlFor="sizeBottom" style={labelStyle}>サイズ下 (cm)</label>
-          <input id="sizeBottom" name="sizeBottom" type="number" min={1} step={1} placeholder="例: 88" defaultValue={d.sizeBottom ?? ""} style={inputStyle} />
+          <label htmlFor="sizeBottom" style={labelStyle}>{t("sizeBottom")}</label>
+          <input id="sizeBottom" name="sizeBottom" type="number" min={1} step={1} placeholder="88" defaultValue={d.sizeBottom ?? ""} style={inputStyle} />
           <FieldError message={fe.sizeBottom} />
         </div>
       </div>
 
       <div>
-        <label htmlFor="description" style={labelStyle}>説明</label>
+        <label htmlFor="description" style={labelStyle}>{t("description")}</label>
         <textarea id="description" name="description" rows={5} defaultValue={d.description ?? ""} style={inputStyle} />
         <FieldError message={fe.description} />
       </div>
@@ -203,7 +206,7 @@ export function CharacterForm({
             cursor: pending ? "not-allowed" : "pointer",
           }}
         >
-          {pending ? "送信中..." : submitLabel}
+          {pending ? t("submitting") : t(mode === "create" ? "submitCreate" : "submitUpdate")}
         </button>
         <Link
           href={cancelHref}
@@ -214,7 +217,7 @@ export function CharacterForm({
             color: "#495057",
           }}
         >
-          キャンセル
+          {t("cancel")}
         </Link>
       </div>
     </form>

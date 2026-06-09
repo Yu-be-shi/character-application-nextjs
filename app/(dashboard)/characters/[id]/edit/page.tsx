@@ -9,6 +9,7 @@ import {
 import { isOwner } from "@/lib/authz";
 import { parseCharacterForm } from "@/lib/character-form";
 import { CharacterForm, type CharacterFormState } from "@/components/character-form";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 export default async function EditCharacterPage({
@@ -20,6 +21,7 @@ export default async function EditCharacterPage({
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
+  const t = await getTranslations("form");
 
   // 所有者でなければ存在を秘匿して 404（表示段階のガード）。
   if (!(await isOwner(session.user.id, id))) notFound();
@@ -38,11 +40,12 @@ export default async function EditCharacterPage({
     formData: FormData,
   ): Promise<CharacterFormState> {
     "use server";
+    const tf = await getTranslations("form");
     const session = await auth();
-    if (!session?.user?.id) return { error: "ログインが必要です" };
+    if (!session?.user?.id) return { error: tf("errLogin") };
 
     // 表示時だけでなく Server Action 内でも所有権を再確認する（クライアント由来の ID を信用しない）。
-    if (!(await isOwner(session.user.id, id))) return { error: "権限がありません" };
+    if (!(await isOwner(session.user.id, id))) return { error: tf("errForbidden") };
 
     const parsed = parseCharacterForm(formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
@@ -52,13 +55,10 @@ export default async function EditCharacterPage({
       await characterClient.update(id, parsed.data, character.version);
     } catch (e) {
       if (e instanceof CharacterApiError && e.status === 412) {
-        return {
-          error:
-            "このキャラクターは他の操作で更新されました。最新の内容を取得し直してから再度編集してください。",
-        };
+        return { error: tf("errConflict") };
       }
       console.error("character update failed", id, e);
-      return { error: "更新に失敗しました。時間をおいて再度お試しください。" };
+      return { error: tf("errUpdate") };
     }
 
     redirect(`/characters/${id}`);
@@ -68,10 +68,10 @@ export default async function EditCharacterPage({
     <div style={{ maxWidth: "480px" }}>
       <div style={{ marginBottom: "24px" }}>
         <Link href={`/characters/${id}`} style={{ fontSize: "13px", color: "#6c757d" }}>
-          ← キャラクター詳細に戻る
+          {t("backToDetail")}
         </Link>
         <h1 style={{ fontSize: "24px", fontWeight: 700, marginTop: "8px" }}>
-          キャラクター編集
+          {t("editTitle")}
         </h1>
       </div>
 
@@ -92,7 +92,7 @@ export default async function EditCharacterPage({
           sizeMiddle: character.sizeMiddle,
           sizeBottom: character.sizeBottom,
         }}
-        submitLabel="更新する"
+        mode="edit"
         cancelHref={`/characters/${id}`}
       />
     </div>
