@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/lib/auth";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export default async function DashboardLayout({
   children,
@@ -9,6 +11,8 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session) redirect("/login");
+  const t = await getTranslations("nav");
+  const tc = await getTranslations("common");
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -26,10 +30,11 @@ export default async function DashboardLayout({
         }}
       >
         <span style={{ fontWeight: 700, fontSize: "16px", marginRight: "auto" }}>
-          キャラクター管理
+          {tc("appName")}
         </span>
-        <Link href="/gallery">ギャラリー</Link>
-        <Link href="/characters">マイキャラ</Link>
+        <Link href="/gallery">{t("gallery")}</Link>
+        <Link href="/characters">{t("myCharacters")}</Link>
+        <LocaleSwitcher />
         <span style={{ color: "#6c757d", fontSize: "13px" }}>
           {session.user?.name ?? session.user?.email}
         </span>
@@ -49,7 +54,7 @@ export default async function DashboardLayout({
               color: "#6c757d",
             }}
           >
-            ログアウト
+            {t("logout")}
           </button>
         </form>
       </nav>

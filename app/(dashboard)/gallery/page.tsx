@@ -1,5 +1,6 @@
 import { characterClient } from "@/lib/character-client";
-import { GENDER_LABEL, GALLERY_PAGE_SIZE } from "@/lib/constants";
+import { GALLERY_PAGE_SIZE } from "@/lib/constants";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 export default async function GalleryPage({
@@ -7,6 +8,8 @@ export default async function GalleryPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  const t = await getTranslations("gallery");
+  const tg = await getTranslations("gender");
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const offset = (page - 1) * GALLERY_PAGE_SIZE;
@@ -22,14 +25,14 @@ export default async function GalleryPage({
   return (
     <div>
       <h1 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "24px" }}>
-        ギャラリー
+        {t("title")}
       </h1>
 
       {characters.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "#6c757d" }}>
-          <p>{page > 1 ? "このページにキャラクターはいません。" : "まだキャラクターがいません。"}</p>
+          <p>{page > 1 ? t("emptyPage") : t("empty")}</p>
           <Link href="/characters/new" style={{ marginTop: "12px", display: "inline-block" }}>
-            最初のキャラクターを作成する →
+            {t("createFirst")}
           </Link>
         </div>
       ) : (
@@ -54,7 +57,7 @@ export default async function GalleryPage({
                 >
                   <h3 style={{ fontWeight: 600, marginBottom: "4px" }}>{c.name}</h3>
                   <p style={{ fontSize: "13px", color: "#6c757d" }}>
-                    {c.race} · {GENDER_LABEL[c.gender] ?? c.gender}
+                    {c.race} · {tg(c.gender)}
                   </p>
                   {c.description && (
                     <p
@@ -89,17 +92,17 @@ export default async function GalleryPage({
         >
           {page > 1 ? (
             <Link href={`/gallery?page=${page - 1}`} style={{ color: "#0070f3" }}>
-              ← 前のページ
+              {t("prev")}
             </Link>
           ) : (
             <span />
           )}
           <span style={{ fontSize: "13px", color: "#6c757d" }}>
-            ページ {page} / {totalPages}（全 {total} 件）
+            {t("pageInfo", { page, totalPages, total })}
           </span>
           {hasNext ? (
             <Link href={`/gallery?page=${page + 1}`} style={{ color: "#0070f3" }}>
-              次のページ →
+              {t("next")}
             </Link>
           ) : (
             <span />

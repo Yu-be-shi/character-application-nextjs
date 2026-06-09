@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { characterClient } from "@/lib/character-client";
-import { GENDER_LABEL } from "@/lib/constants";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 export default async function MyCharactersPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const t = await getTranslations("characters");
+  const tg = await getTranslations("gender");
 
   const userChars = await prisma.userCharacter.findMany({
     where: { userId: session.user.id },
@@ -33,7 +35,7 @@ export default async function MyCharactersPage() {
           marginBottom: "24px",
         }}
       >
-        <h1 style={{ fontSize: "24px", fontWeight: 700 }}>マイキャラクター</h1>
+        <h1 style={{ fontSize: "24px", fontWeight: 700 }}>{t("title")}</h1>
         <Link
           href="/characters/new"
           style={{
@@ -44,15 +46,15 @@ export default async function MyCharactersPage() {
             fontWeight: 500,
           }}
         >
-          ＋ 新規作成
+          {t("new")}
         </Link>
       </div>
 
       {characters.length === 0 ? (
         <div style={{ textAlign: "center", padding: "64px 0", color: "#6c757d" }}>
-          <p>まだキャラクターがいません。</p>
+          <p>{t("empty")}</p>
           <Link href="/characters/new" style={{ marginTop: "12px", display: "inline-block" }}>
-            最初のキャラクターを作成する →
+            {t("createFirst")}
           </Link>
         </div>
       ) : (
@@ -78,7 +80,7 @@ export default async function MyCharactersPage() {
                 >
                   <h3 style={{ fontWeight: 600, marginBottom: "4px" }}>{c.name}</h3>
                   <p style={{ fontSize: "13px", color: "#6c757d" }}>
-                    {c.race} · {GENDER_LABEL[c.gender] ?? c.gender}
+                    {c.race} · {tg(c.gender)}
                   </p>
                   {c.description && (
                     <p

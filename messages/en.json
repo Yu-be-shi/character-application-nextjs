@@ -1,0 +1,68 @@
+{
+  "common": { "appName": "Character Manager", "appDesc": "Character data management dashboard", "loading": "Loading…", "retry": "Retry", "back": "Back" },
+  "nav": { "gallery": "Gallery", "myCharacters": "My Characters", "logout": "Log out" },
+  "login": { "title": "Character Manager", "googleSignIn": "Sign in with Google" },
+  "locale": { "label": "Language", "ja": "日本語", "en": "English" },
+  "errors": {
+    "globalTitle": "An unexpected error occurred",
+    "globalDesc": "Please try again later.",
+    "segTitle": "Failed to load",
+    "segDesc": "This may be a temporary problem.",
+    "notFoundTitle": "Page not found",
+    "notFoundDesc": "The page does not exist or you do not have access.",
+    "backToCharacters": "Back to My Characters"
+  },
+  "gender": { "male": "Male", "female": "Female", "other": "Other", "unknown": "Unknown" },
+  "characters": {
+    "title": "My Characters",
+    "new": "+ New",
+    "empty": "No characters yet.",
+    "createFirst": "Create your first character →"
+  },
+  "gallery": {
+    "title": "Gallery",
+    "empty": "No characters yet.",
+    "emptyPage": "No characters on this page.",
+    "createFirst": "Create your first character →",
+    "pageInfo": "Page {page} / {totalPages} ({total} total)",
+    "prev": "← Previous",
+    "next": "Next →"
+  },
+  "detail": {
+    "race": "Race",
+    "gender": "Gender",
+    "description": "Description",
+    "createdAt": "Created",
+    "edit": "Edit",
+    "delete": "Delete",
+    "back": "← Back to My Characters"
+  },
+  "form": {
+    "newTitle": "New Character",
+    "editTitle": "Edit Character",
+    "name": "Name *",
+    "race": "Race *",
+    "raceSelect": "Select a race",
+    "gender": "Gender *",
+    "birthDate": "Birth date",
+    "birthPlace": "Birthplace",
+    "height": "Height (cm)",
+    "weight": "Weight (kg)",
+    "bodyFat": "Body fat (%)",
+    "sizeTop": "Top (cm)",
+    "sizeMiddle": "Middle (cm)",
+    "sizeBottom": "Bottom (cm)",
+    "description": "Description",
+    "submitCreate": "Create",
+    "submitUpdate": "Update",
+    "submitting": "Submitting...",
+    "cancel": "Cancel",
+    "backToDetail": "← Back to character",
+    "errLogin": "Login required",
+    "errForbidden": "Forbidden",
+    "errCreate": "Failed to create the character. Please try again later.",
+    "errSave": "Failed to save the character. Please try again later.",
+    "errUpdate": "Failed to update. Please try again later.",
+    "errConflict": "This character was modified by another operation. Please reload the latest version and edit again."
+  }
+}
