@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -27,8 +28,8 @@ export default async function DashboardLayout({
         <span style={{ fontWeight: 700, fontSize: "16px", marginRight: "auto" }}>
           キャラクター管理
         </span>
-        <a href="/gallery">ギャラリー</a>
-        <a href="/characters">マイキャラ</a>
+        <Link href="/gallery">ギャラリー</Link>
+        <Link href="/characters">マイキャラ</Link>
         <span style={{ color: "#6c757d", fontSize: "13px" }}>
           {session.user?.name ?? session.user?.email}
         </span>

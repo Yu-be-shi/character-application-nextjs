@@ -2,14 +2,9 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { characterClient } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
+import { assertOwnership, isOwner } from "@/lib/authz";
+import { GENDER_LABEL } from "@/lib/constants";
 import Link from "next/link";
-
-const GENDER_LABEL: Record<string, string> = {
-  male: "男性",
-  female: "女性",
-  other: "その他",
-  unknown: "不明",
-};
 
 export default async function CharacterDetailPage({
   params,
@@ -28,10 +23,7 @@ export default async function CharacterDetailPage({
     notFound();
   }
 
-  const userChar = await prisma.userCharacter.findUnique({
-    where: { userId_characterId: { userId: session.user.id, characterId: id } },
-  });
-  const isOwner = !!userChar;
+  const owner = await isOwner(session.user.id, id);
 
   async function handleDelete(formData: FormData) {
     "use server";
@@ -40,14 +32,9 @@ export default async function CharacterDetailPage({
 
     const charId = formData.get("characterId") as string;
 
-    // 所有者本人のみ削除できる（編集ページと同様に紐付けを再確認する）。
-    // UI でボタンを隠すだけでなくサーバー側でも検証し、なりすまし削除を防ぐ。
-    const owned = await prisma.userCharacter.findUnique({
-      where: {
-        userId_characterId: { userId: session.user.id, characterId: charId },
-      },
-    });
-    if (!owned) throw new Error("Forbidden");
+    // 所有者本人のみ削除できる。UI でボタンを隠すだけでなくサーバー側でも
+    // 紐付けを再確認し、なりすまし削除を防ぐ（クライアント由来の ID を信用しない）。
+    await assertOwnership(session.user.id, charId);
 
     await characterClient.delete(charId);
     await prisma.userCharacter.deleteMany({ where: { characterId: charId } });
@@ -71,7 +58,7 @@ export default async function CharacterDetailPage({
         }}
       >
         <h1 style={{ fontSize: "28px", fontWeight: 700 }}>{character.name}</h1>
-        {isOwner && (
+        {owner && (
           <div style={{ display: "flex", gap: "8px" }}>
             <Link
               href={`/characters/${id}/edit`}

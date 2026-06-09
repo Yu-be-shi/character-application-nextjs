@@ -2,14 +2,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { characterClient } from "@/lib/character-client";
+import { GENDER_LABEL } from "@/lib/constants";
 import Link from "next/link";
-
-const GENDER_LABEL: Record<string, string> = {
-  male: "男性",
-  female: "女性",
-  other: "その他",
-  unknown: "不明",
-};
 
 export default async function MyCharactersPage() {
   const session = await auth();
