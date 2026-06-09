@@ -1,0 +1,28 @@
+# STG（自宅サーバー）へのアプリ（Next.js + MySQL）スタックデプロイ。
+# 前提は他スタックと同じ（self-hosted runner ラベル character-stg、$STG_ROOT 配下に clone 済み）。
+# DB・API スタックが先に起動済みで character-db-net 経由で character-api に到達できること。
+name: Deploy STG (home)
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: stg-app
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, character-stg]
+    steps:
+      - name: Pull & up (Next.js + MySQL)
+        env:
+          STG_ROOT: ${{ vars.STG_ROOT }}
+        run: |
+          set -euo pipefail
+          ROOT="${STG_ROOT:-$HOME/character-system}"
+          cd "$ROOT/applications/character-application-nextjs"
+          git fetch origin develop && git reset --hard origin/develop
+          # 起動時に docker-entrypoint.sh が prisma migrate deploy を実行する。
+          docker compose up -d --build
