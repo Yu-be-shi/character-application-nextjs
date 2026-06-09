@@ -108,11 +108,9 @@ export const characterClient = {
     request<Character>(`/api/v1/characters/${id}`, {
       method: "PUT",
       body: JSON.stringify(input),
-      headers:
-        expectedVersion != null ? { "If-Match": `"${expectedVersion}"` } : undefined,
+      headers: expectedVersion != null ? { "If-Match": `"${expectedVersion}"` } : undefined,
     }),
-  delete: (id: string) =>
-    request<void>(`/api/v1/characters/${id}`, { method: "DELETE" }),
+  delete: (id: string) => request<void>(`/api/v1/characters/${id}`, { method: "DELETE" }),
 };
 
 export const raceClient = {

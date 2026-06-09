@@ -6,11 +6,7 @@ import { assertOwnership, isOwner } from "@/lib/authz";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-export default async function CharacterDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const t = await getTranslations("detail");
@@ -109,24 +105,13 @@ export default async function CharacterDetailPage({
         {character.description && (
           <Row label={t("description")} value={character.description} multiline />
         )}
-        <Row
-          label={t("createdAt")}
-          value={new Date(character.createdAt).toLocaleDateString()}
-        />
+        <Row label={t("createdAt")} value={new Date(character.createdAt).toLocaleDateString()} />
       </div>
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  multiline,
-}: {
-  label: string;
-  value: string;
-  multiline?: boolean;
-}) {
+function Row({ label, value, multiline }: { label: string; value: string; multiline?: boolean }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "8px" }}>
       <dt style={{ fontSize: "13px", color: "#6c757d", fontWeight: 500 }}>{label}</dt>

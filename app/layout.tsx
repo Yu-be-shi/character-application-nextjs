@@ -8,11 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("appName"), description: t("appDesc") };
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const messages = await getMessages();
   return (

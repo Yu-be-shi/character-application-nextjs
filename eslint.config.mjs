@@ -1,6 +1,7 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
+import prettier from "eslint-config-prettier";
 
 // ESLint Flat Config（`next lint` は Next.js 16 で廃止予定のため移行）。
 // eslint-config-next を FlatCompat で読み込む。実行は `eslint .`。
@@ -22,6 +23,8 @@ const eslintConfig = [
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // フォーマット系ルールは Prettier に委ねる（競合を無効化。必ず最後に置く）。
+  prettier,
 ];
 
 export default eslintConfig;

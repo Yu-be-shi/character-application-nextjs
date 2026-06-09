@@ -1,5 +1,4 @@
 services:
-
   # ──────────────────────────────────────────────────────────────────────────────
   # ユーザーDB（MySQL）
   # テーブル構造は user-dashboard の Prisma migrate deploy が管理する
@@ -14,7 +13,16 @@ services:
     volumes:
       - user-db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${USER_DB_USER}", "-p${USER_DB_PASSWORD}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u${USER_DB_USER}",
+          "-p${USER_DB_PASSWORD}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10

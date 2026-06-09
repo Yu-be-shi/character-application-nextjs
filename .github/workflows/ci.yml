@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run format:check
       - run: npm test
       # 高深刻度以上の既知脆弱性で失敗させる（本番依存のみ）。
       - name: npm audit

@@ -14,9 +14,7 @@ export default function DashboardError({
   const tc = useTranslations("common");
   return (
     <div style={{ textAlign: "center", padding: "64px 24px" }}>
-      <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
-        {t("segTitle")}
-      </h2>
+      <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>{t("segTitle")}</h2>
       <p style={{ color: "#6c757d", fontSize: "14px", marginBottom: "16px" }}>
         {t("segDesc")} {error.digest ? `(${error.digest})` : ""}
       </p>

@@ -34,9 +34,7 @@ export async function POST(req: NextRequest) {
   ]);
   const owned = new Set(links.map((l) => l.characterId));
 
-  const orphans = all.filter(
-    (c) => !owned.has(c.id) && new Date(c.createdAt).getTime() < cutoff,
-  );
+  const orphans = all.filter((c) => !owned.has(c.id) && new Date(c.createdAt).getTime() < cutoff);
 
   let deleted = 0;
   if (apply) {

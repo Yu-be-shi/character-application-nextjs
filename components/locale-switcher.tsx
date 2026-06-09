@@ -22,7 +22,12 @@ export function LocaleSwitcher() {
       value={locale}
       disabled={pending}
       onChange={(e) => change(e.target.value)}
-      style={{ fontSize: "13px", padding: "4px 6px", border: "1px solid #ced4da", borderRadius: "6px" }}
+      style={{
+        fontSize: "13px",
+        padding: "4px 6px",
+        border: "1px solid #ced4da",
+        borderRadius: "6px",
+      }}
     >
       <option value="ja">{t("ja")}</option>
       <option value="en">{t("en")}</option>

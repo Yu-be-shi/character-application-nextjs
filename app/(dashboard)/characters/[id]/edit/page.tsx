@@ -12,11 +12,7 @@ import { CharacterForm, type CharacterFormState } from "@/components/character-f
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-export default async function EditCharacterPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditCharacterPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -70,9 +66,7 @@ export default async function EditCharacterPage({
         <Link href={`/characters/${id}`} style={{ fontSize: "13px", color: "#6c757d" }}>
           {t("backToDetail")}
         </Link>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, marginTop: "8px" }}>
-          {t("editTitle")}
-        </h1>
+        <h1 style={{ fontSize: "24px", fontWeight: 700, marginTop: "8px" }}>{t("editTitle")}</h1>
       </div>
 
       <CharacterForm

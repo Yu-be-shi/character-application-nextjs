@@ -1,5 +1,11 @@
 {
-  "common": { "appName": "キャラクター管理", "appDesc": "キャラクターデータ管理ダッシュボード", "loading": "読み込み中…", "retry": "再試行", "back": "戻る" },
+  "common": {
+    "appName": "キャラクター管理",
+    "appDesc": "キャラクターデータ管理ダッシュボード",
+    "loading": "読み込み中…",
+    "retry": "再試行",
+    "back": "戻る"
+  },
   "nav": { "gallery": "ギャラリー", "myCharacters": "マイキャラ", "logout": "ログアウト" },
   "login": { "title": "キャラクター管理", "googleSignIn": "Google でログイン" },
   "locale": { "label": "言語", "ja": "日本語", "en": "English" },
