@@ -1,0 +1,50 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+# 未ログイン時の認可ガード（保護ページ→ログインへリダイレクト）を検証するスモーク E2E。
+# Google OAuth の実ログインは行わないため API/character-db は不要。MySQL のみ起動してアプリを立てる。
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: app
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: rootpw
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpw"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: "mysql://app:password@127.0.0.1:3306/testdb"
+      # E2E 専用のダミー値（実シークレットではない）
+      AUTH_SECRET: "e2e-only-not-a-real-secret-000000000000"
+      AUTH_GOOGLE_ID: "dummy"
+      AUTH_GOOGLE_SECRET: "dummy"
+      AUTH_TRUST_HOST: "true"
+      NEXTAUTH_URL: "http://localhost:3000"
+      CHARACTER_API_URL: "http://localhost:8080"
+      CHARACTER_API_KEY: "dummy"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

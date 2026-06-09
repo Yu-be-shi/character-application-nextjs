@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "generate:types": "openapi-typescript http://character-api:8080/swagger/doc.json -o lib/api-types.gen.ts"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.1.0",
+    "@playwright/test": "^1.49.0",
     "openapi-typescript": "^7.0.0",
     "prisma": "^6.2.0",
     "typescript": "^5.7.0",
