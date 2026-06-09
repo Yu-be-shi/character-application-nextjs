@@ -11,10 +11,13 @@ export default async function GalleryPage({
   const page = Math.max(1, Number(pageParam) || 1);
   const offset = (page - 1) * GALLERY_PAGE_SIZE;
 
-  // 総件数は API が返さないため、1件多く取得して「次ページの有無」を判定する。
-  const rows = await characterClient.list({ limit: GALLERY_PAGE_SIZE + 1, offset });
-  const hasNext = rows.length > GALLERY_PAGE_SIZE;
-  const characters = hasNext ? rows.slice(0, GALLERY_PAGE_SIZE) : rows;
+  // total（総件数）で正確なページャを作る。
+  const { items: characters, total } = await characterClient.list({
+    limit: GALLERY_PAGE_SIZE,
+    offset,
+  });
+  const totalPages = Math.max(1, Math.ceil(total / GALLERY_PAGE_SIZE));
+  const hasNext = page < totalPages;
 
   return (
     <div>
@@ -91,7 +94,9 @@ export default async function GalleryPage({
           ) : (
             <span />
           )}
-          <span style={{ fontSize: "13px", color: "#6c757d" }}>ページ {page}</span>
+          <span style={{ fontSize: "13px", color: "#6c757d" }}>
+            ページ {page} / {totalPages}（全 {total} 件）
+          </span>
           {hasNext ? (
             <Link href={`/gallery?page=${page + 1}`} style={{ color: "#0070f3" }}>
               次のページ →

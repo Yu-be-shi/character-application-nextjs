@@ -1,6 +1,11 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { characterClient, raceClient } from "@/lib/character-client";
+import {
+  characterClient,
+  raceClient,
+  CharacterApiError,
+  type Character,
+} from "@/lib/character-client";
 import { isOwner } from "@/lib/authz";
 import { parseCharacterForm } from "@/lib/character-form";
 import { CharacterForm, type CharacterFormState } from "@/components/character-form";
@@ -19,7 +24,7 @@ export default async function EditCharacterPage({
   // 所有者でなければ存在を秘匿して 404（表示段階のガード）。
   if (!(await isOwner(session.user.id, id))) notFound();
 
-  let character;
+  let character: Character;
   try {
     character = await characterClient.get(id);
   } catch {
@@ -43,8 +48,15 @@ export default async function EditCharacterPage({
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
     try {
-      await characterClient.update(id, parsed.data);
+      // 表示時に読み込んだ版を If-Match で送る（楽観ロック）。
+      await characterClient.update(id, parsed.data, character.version);
     } catch (e) {
+      if (e instanceof CharacterApiError && e.status === 412) {
+        return {
+          error:
+            "このキャラクターは他の操作で更新されました。最新の内容を取得し直してから再度編集してください。",
+        };
+      }
       console.error("character update failed", id, e);
       return { error: "更新に失敗しました。時間をおいて再度お試しください。" };
     }

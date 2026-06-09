@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import Link from "next/link";
 import { GENDER_OPTIONS } from "@/lib/constants";
 
@@ -64,12 +64,14 @@ export function CharacterForm({
   defaults,
   submitLabel,
   cancelHref,
+  withIdempotencyKey = false,
 }: {
   action: CharacterFormAction;
   races: Race[];
   defaults?: CharacterFormDefaults;
   submitLabel: string;
   cancelHref: string;
+  withIdempotencyKey?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<CharacterFormState, FormData>(
     action,
@@ -78,8 +80,17 @@ export function CharacterForm({
   const fe = state.fieldErrors ?? {};
   const d = defaults ?? {};
 
+  // 二重送信防止用の冪等キー。このフォーム1インスタンスにつき1つ（再マウントで再生成）。
+  const idemKeyRef = useRef<string>("");
+  if (withIdempotencyKey && !idemKeyRef.current) {
+    idemKeyRef.current = crypto.randomUUID();
+  }
+
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {withIdempotencyKey && (
+        <input type="hidden" name="idempotencyKey" value={idemKeyRef.current} />
+      )}
       {state.error && (
         <p
           role="alert"
