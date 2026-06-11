@@ -14,7 +14,7 @@
 | フレームワーク  | Next.js 15（App Router）                                                                    |
 | 認証            | NextAuth.js v5（Auth.js, Google OAuth, DB セッション）                                      |
 | ORM             | Prisma                                                                                      |
-| ユーザーDB      | MySQL（`character-db-infra` ではなくこのリポジトリの compose が起動）                       |
+| ユーザーDB      | MySQL（`platform-infra` ではなくこのリポジトリの compose が起動）                           |
 | キャラクターAPI | `character-api`（Go）へ HTTP リクエスト                                                     |
 | 入力検証        | zod（`lib/character-form.ts`）                                                              |
 | テスト          | vitest（`lib/`・`components/` の単体/コンポーネント）+ Playwright E2E（`npm run test:e2e`） |
@@ -62,8 +62,8 @@ curl -X POST -H "X-Internal-API-Key: $RECONCILE_API_KEY" \
 
 推奨はルート（character-system）の手順に従い `docker compose up --build` で MySQL + Next.js を
 起動する方法（`docker-entrypoint.sh` が起動時に `prisma migrate deploy` を実行）。前提として
-`character-db-infra` → `character-api-go-infra` を先に起動し、`character-db-net` 経由で
-`character-api` に到達できること。
+`platform-infra` の基盤スタック（PostgreSQL + migrate + Go API）を先に起動し、`character-db-net`
+経由で `character-api` に到達できること。
 
 ```bash
 cp .env.example .env   # AUTH_GOOGLE_* などを記入

@@ -32,7 +32,7 @@ services:
   # user-dashboard（Next.js）
   # 起動時に docker-entrypoint.sh が Prisma migrate deploy を実行する
   # character-api へは character-db-net 経由でアクセスする
-  # （前提: character-db-infra と character-api-go-infra が起動済みであること）
+  # （前提: platform-infra の基盤スタック（DB + migrate + API）が起動済みであること）
   # ──────────────────────────────────────────────────────────────────────────────
   user-dashboard:
     build:
