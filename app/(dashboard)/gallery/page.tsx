@@ -1,3 +1,5 @@
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { characterClient } from "@/lib/character-client";
 import { GALLERY_PAGE_SIZE } from "@/lib/constants";
 import { getTranslations } from "next-intl/server";
@@ -8,10 +10,15 @@ export default async function GalleryPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  // 認証はレイアウトに頼らずページ自身でも確認する（他の保護ページと同じ方針）。
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+
   const t = await getTranslations("gallery");
   const tg = await getTranslations("gender");
   const { page: pageParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
+  // 小数・負数・非数値はすべて 1 ページ目に丸める（API へ半端な offset を渡さない）。
+  const page = Math.max(1, Math.floor(Number(pageParam) || 1));
   const offset = (page - 1) * GALLERY_PAGE_SIZE;
 
   // total（総件数）で正確なページャを作る。

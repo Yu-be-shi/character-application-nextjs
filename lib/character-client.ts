@@ -1,25 +1,44 @@
 // character-api へのサーバーサイド専用 HTTP クライアント。
 // この変数はブラウザに漏れてはならない（NEXT_PUBLIC_ プレフィックスなし）。
 
-export type Character = {
-  id: string;
-  name: string;
-  description: string;
-  raceId: string;
-  race: string;
-  gender: "male" | "female" | "other" | "unknown";
-  birthDate?: string;
-  birthPlace?: string;
-  heightCm?: number;
-  weightKg?: number;
-  bodyFatPercentage?: number;
-  sizeTop?: number;
-  sizeMiddle?: number;
-  sizeBottom?: number;
-  version: number; // 楽観ロック用。更新時に If-Match で送り返す
-  createdAt: string;
-  updatedAt: string;
+// 共有シークレット CHARACTER_API_KEY を扱うため、誤って Client Component から
+// import されたらブラウザ実行時を待たずビルド時に失敗させる。
+import "server-only";
+
+import type { components } from "./api-types.gen";
+
+// 型は character-api（Go）の OpenAPI 仕様から自動生成（lib/api-types.gen.ts）。
+// 仕様の更新手順は package.json の sync:api-spec / generate:types を参照。
+type Schemas = components["schemas"];
+
+// 指定キーを必須化（NonNullable）するユーティリティ。
+// K は keyof T に制約されるため、Go 側がフィールドを削除/改名すると型エラーで検知できる。
+type Require<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]-?: NonNullable<T[P]>;
 };
+
+// gender は Go の OpenAPI 上は string だが、実際は列挙。ここで絞り込む。
+// 列挙の定義は lib/constants.ts に一本化（二重定義しない）。
+import type { Gender } from "./constants";
+export type { Gender };
+
+// 生成型(swaggo 2.0 由来でレスポンス全項目が optional)を土台に、
+// API が必ず返す項目を必須化し、gender を列挙へ絞る。
+export type Character = Omit<
+  Require<
+    Schemas["dto.CharacterResponse"],
+    | "id"
+    | "name"
+    | "description"
+    | "raceId"
+    | "race"
+    | "gender"
+    | "version" // 楽観ロック用。更新時に If-Match で送り返す
+    | "createdAt"
+    | "updatedAt"
+  >,
+  "gender"
+> & { gender: Gender };
 
 // character-api のエラー。HTTP ステータスを保持し、呼び出し側が 412/422 等を判別できるようにする。
 export class CharacterApiError extends Error {
@@ -32,41 +51,31 @@ export class CharacterApiError extends Error {
   }
 }
 
-export type Race = {
-  id: string;
-  name: string;
-};
+export type Race = Require<Schemas["dto.RaceResponse"], "id" | "name">;
 
-export type CreateCharacterInput = {
-  name: string;
-  description?: string;
-  raceId: string;
-  gender: string;
-  birthDate?: string;
-  birthPlace?: string;
-  heightCm?: number;
-  weightKg?: number;
-  bodyFatPercentage?: number;
-  sizeTop?: number;
-  sizeMiddle?: number;
-  sizeBottom?: number;
-};
+// リクエスト型は生成型をそのまま使う（required は OpenAPI が表現できている）。
+export type CreateCharacterInput = Schemas["dto.CreateCharacterRequest"];
 
-export type UpdateCharacterInput = Partial<CreateCharacterInput>;
+export type UpdateCharacterInput = Schemas["dto.UpdateCharacterRequest"];
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit & { revalidate?: number }): Promise<T> {
   const url = process.env.CHARACTER_API_URL;
   const key = process.env.CHARACTER_API_KEY;
   if (!url || !key) throw new Error("CHARACTER_API_URL / CHARACTER_API_KEY が未設定です");
 
+  const { revalidate, ...rest } = init ?? {};
   const res = await fetch(`${url}${path}`, {
-    ...init,
+    ...rest,
     headers: {
       "Content-Type": "application/json",
       "X-Internal-API-Key": key,
-      ...(init?.headers ?? {}),
+      ...(rest.headers ?? {}),
     },
-    cache: "no-store",
+    // 既定は no-store（キャラクターは常に最新を読む）。revalidate 指定時のみ
+    // Next.js の Data Cache を許す（races などほぼ静的なマスタ用）。
+    ...(revalidate != null ? { next: { revalidate } } : { cache: "no-store" as const }),
+    // API ハング時に Server Component のレンダリングを無期限にブロックしない。
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -96,15 +105,22 @@ export const characterClient = {
     return request<CharacterList>(`/api/v1/characters${q ? `?${q}` : ""}`);
   },
   get: (id: string) => request<Character>(`/api/v1/characters/${id}`),
-  // idempotencyKey を渡すと二重送信が API 側で重複排除される（POST のみ）。
+  // 予約パターン: create は pending（不可視）として作成する。所有リンクを書いた後に
+  // confirm で active（可視）へ昇格させる。idempotencyKey を渡すと二重送信が API 側で
+  // 重複排除される（Redis のミドルウェアに加え、DB の creation_token 一意制約でも永続的に防止）。
   create: (input: CreateCharacterInput, idempotencyKey?: string) =>
     request<Character>("/api/v1/characters", {
       method: "POST",
       body: JSON.stringify(input),
       headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     }),
-  // PUT は全置換。expectedVersion を渡すと楽観ロック（If-Match）。版不一致は API が 412 を返す。
-  update: (id: string, input: UpdateCharacterInput, expectedVersion?: number) =>
+  // 予約の確定（pending → active）。冪等。所有リンク作成後に呼ぶ。
+  confirm: (id: string) =>
+    request<Character>(`/api/v1/characters/${id}/confirm`, { method: "POST" }),
+  // PUT は全置換（省略した任意項目は API 側でクリアされる）ため、引数型は
+  // 部分更新用の UpdateCharacterInput ではなく作成時と同じ完全な形を要求する。
+  // expectedVersion を渡すと楽観ロック（If-Match）。版不一致は API が 412 を返す。
+  update: (id: string, input: CreateCharacterInput, expectedVersion?: number) =>
     request<Character>(`/api/v1/characters/${id}`, {
       method: "PUT",
       body: JSON.stringify(input),
@@ -114,5 +130,6 @@ export const characterClient = {
 };
 
 export const raceClient = {
-  list: () => request<Race[]>("/api/v1/races"),
+  // 種族はほぼ静的なマスタなので 1 時間キャッシュする（フォーム表示のたびの fetch を避ける）。
+  list: () => request<Race[]>("/api/v1/races", { revalidate: 3600 }),
 };

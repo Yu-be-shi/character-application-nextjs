@@ -1,3 +1,5 @@
+// 認証シークレットを扱うサーバー専用モジュール（Client Component からの誤 import をビルド時に検知）。
+import "server-only";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";

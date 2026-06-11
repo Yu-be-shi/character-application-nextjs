@@ -39,6 +39,16 @@ describe("parseCharacterForm", () => {
     expect(r.success && r.data.birthDate).toBe("1990-05-20T00:00:00Z");
   });
 
+  it("暦として実在しない生年月日を拒否する", () => {
+    for (const bad of ["2026-02-31", "2026-13-01", "2026-04-31"]) {
+      const r = parseCharacterForm(
+        fd({ name: "A", raceId: RACE_ID, gender: "other", birthDate: bad }),
+      );
+      expect(r.success).toBe(false);
+      if (!r.success) expect(r.fieldErrors.birthDate).toBeTruthy();
+    }
+  });
+
   it("数値文字列を数値に変換する", () => {
     const r = parseCharacterForm(
       fd({ name: "A", raceId: RACE_ID, gender: "male", heightCm: "170", weightKg: "60" }),

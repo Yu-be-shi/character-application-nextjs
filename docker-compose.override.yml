@@ -1,7 +1,12 @@
 # ローカル開発用のオーバーライド設定
-# このファイルは docker compose up 時に自動的に読み込まれる
+# このファイルは docker compose up 時に自動的に読み込まれる。
+# STG では読み込まない（deploy-stg.yml は -f で base + stg のみ指定する）。
 
 services:
-  user-db:
+  user-dashboard:
     ports:
-      - "3306:3306"
+      - "3000:3000"
+  user-db:
+    # デバッグ用の MySQL 公開はループバック限定（LAN/外部に晒さない）。
+    ports:
+      - "127.0.0.1:3306:3306"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { GENDERS } from "@/lib/constants";
@@ -27,6 +27,8 @@ export type CharacterFormDefaults = {
 export type CharacterFormState = {
   fieldErrors?: Record<string, string>;
   error?: string;
+  /** 楽観ロック競合（412）時にサーバーが返す最新版。次回送信の If-Match に使う。 */
+  latestVersion?: number;
 };
 
 export type CharacterFormAction = (
@@ -66,6 +68,7 @@ export function CharacterForm({
   mode,
   cancelHref,
   withIdempotencyKey = false,
+  version,
 }: {
   action: CharacterFormAction;
   races: Race[];
@@ -73,6 +76,8 @@ export function CharacterForm({
   mode: "create" | "edit";
   cancelHref: string;
   withIdempotencyKey?: boolean;
+  /** 編集時の楽観ロック版。412 後はサーバーが返した latestVersion で上書きされる。 */
+  version?: number;
 }) {
   const t = useTranslations("form");
   const tg = useTranslations("gender");
@@ -80,16 +85,22 @@ export function CharacterForm({
   const fe = state.fieldErrors ?? {};
   const d = defaults ?? {};
 
-  // 二重送信防止用の冪等キー。このフォーム1インスタンスにつき1つ（再マウントで再生成）。
-  const idemKeyRef = useRef<string>("");
-  if (withIdempotencyKey && !idemKeyRef.current) {
-    idemKeyRef.current = crypto.randomUUID();
-  }
+  // 二重送信防止用の冪等キー。送信結果（エラー含む）が返るたびに再発行する。
+  // 固定キーのまま再送すると、サーバー側で補償削除された前回の作成レスポンスを
+  // API が再生し、存在しないキャラクターに紐付いてしまう（幽霊キャラ）ため。
+  // レンダー中に crypto.randomUUID() を呼ぶと SSR とクライアントで値がズレて
+  // hydration mismatch になるため、マウント後（と結果が返るたび）に発行する。
+  // ハイドレーション前の送信ではキーが空＝重複排除なしのフォールバックになる。
+  const [idemKey, setIdemKey] = useState("");
+  useEffect(() => {
+    if (withIdempotencyKey) setIdemKey(crypto.randomUUID());
+  }, [withIdempotencyKey, state]);
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {withIdempotencyKey && (
-        <input type="hidden" name="idempotencyKey" value={idemKeyRef.current} />
+      {withIdempotencyKey && <input type="hidden" name="idempotencyKey" value={idemKey} />}
+      {version != null && (
+        <input type="hidden" name="version" value={state.latestVersion ?? version} />
       )}
       {state.error && (
         <p

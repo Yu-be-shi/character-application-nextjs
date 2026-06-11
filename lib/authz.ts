@@ -1,3 +1,5 @@
+// DB を直接触るサーバー専用モジュール（Client Component からの誤 import をビルド時に検知）。
+import "server-only";
 import { prisma } from "@/lib/prisma";
 
 // キャラクターの所有権（ユーザー × キャラクターの紐付け）を判定する関数群。

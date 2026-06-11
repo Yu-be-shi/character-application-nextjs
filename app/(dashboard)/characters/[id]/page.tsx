@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { characterClient } from "@/lib/character-client";
+import { characterClient, CharacterApiError } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
 import { assertOwnership, isOwner } from "@/lib/authz";
 import { getTranslations } from "next-intl/server";
@@ -17,25 +17,39 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
   let character;
   try {
     character = await characterClient.get(id);
-  } catch {
-    notFound();
+  } catch (e) {
+    // 404 のときだけ「見つかりません」。API ダウン等は誤魔化さず
+    // エラーバウンダリ（error.tsx）に流す。
+    if (e instanceof CharacterApiError && e.status === 404) notFound();
+    throw e;
   }
 
   const owner = await isOwner(session.user.id, id);
 
-  async function handleDelete(formData: FormData) {
+  async function handleDelete() {
     "use server";
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    const charId = formData.get("characterId") as string;
+    // 削除対象はクライアント由来の値ではなく、表示中ページのルートパラメータ
+    // （Server Action のクロージャ）を使う。所有者本人のみ削除できることも
+    // UI でボタンを隠すだけでなくサーバー側で再確認する。
+    await assertOwnership(session.user.id, id);
 
-    // 所有者本人のみ削除できる。UI でボタンを隠すだけでなくサーバー側でも
-    // 紐付けを再確認し、なりすまし削除を防ぐ（クライアント由来の ID を信用しない）。
-    await assertOwnership(session.user.id, charId);
-
-    await characterClient.delete(charId);
-    await prisma.userCharacter.deleteMany({ where: { characterId: charId } });
+    // 自分以外の所有者がいなければ、先に API 本体を削除し、その後に自分のリンクを消す。
+    // この順序にするのは、reconcile から「孤児キャラ掃除」を撤去したため:
+    // 途中で失敗しても残るのは「宙吊りリンク（API に無い行を指すリンク）」で reconcile が掃除できる。
+    // 逆順（リンク先消し）だと API 削除失敗時に回収不能な孤児（所有者なしの可視キャラ）が残る。
+    // 消す/参照するのは自分のリンクだけ（スキーマ上は複数所有が可能なため他ユーザーを巻き添えにしない）。
+    const otherOwners = await prisma.userCharacter.count({
+      where: { characterId: id, NOT: { userId: session.user.id } },
+    });
+    if (otherOwners === 0) {
+      await characterClient.delete(id); // 論理削除（最後の所有者のときのみ）
+    }
+    await prisma.userCharacter.deleteMany({
+      where: { userId: session.user.id, characterId: id },
+    });
     redirect("/characters");
   }
 
@@ -43,7 +57,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     <div style={{ maxWidth: "640px" }}>
       <div style={{ marginBottom: "24px" }}>
         <Link href="/characters" style={{ fontSize: "13px", color: "#6c757d" }}>
-          ← マイキャラクターに戻る
+          {t("back")}
         </Link>
       </div>
 
@@ -71,7 +85,6 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
               {t("edit")}
             </Link>
             <form action={handleDelete}>
-              <input type="hidden" name="characterId" value={id} />
               <button
                 type="submit"
                 style={{
@@ -90,7 +103,8 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
         )}
       </div>
 
-      <div
+      {/* dt/dd は dl の子であるべき（dl 直下の div ラッパーは HTML 仕様で許容）。 */}
+      <dl
         style={{
           background: "#fff",
           border: "1px solid #e9ecef",
@@ -98,6 +112,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
           padding: "24px",
           display: "grid",
           gap: "16px",
+          margin: 0,
         }}
       >
         <Row label={t("race")} value={character.race} />
@@ -106,7 +121,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
           <Row label={t("description")} value={character.description} multiline />
         )}
         <Row label={t("createdAt")} value={new Date(character.createdAt).toLocaleDateString()} />
-      </div>
+      </dl>
     </div>
   );
 }

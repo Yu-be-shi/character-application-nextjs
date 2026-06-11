@@ -51,7 +51,7 @@ export default async function MyCharactersPage() {
       </div>
 
       {characters.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "64px 0", color: "#6c757d" }}>
+        <div style={{ textAlign: "center", padding: "64px 0", color: "#5f666d" }}>
           <p>{t("empty")}</p>
           <Link href="/characters/new" style={{ marginTop: "12px", display: "inline-block" }}>
             {t("createFirst")}
@@ -79,7 +79,7 @@ export default async function MyCharactersPage() {
                   }}
                 >
                   <h3 style={{ fontWeight: 600, marginBottom: "4px" }}>{c.name}</h3>
-                  <p style={{ fontSize: "13px", color: "#6c757d" }}>
+                  <p style={{ fontSize: "13px", color: "#5f666d" }}>
                     {c.race} · {tg(c.gender)}
                   </p>
                   {c.description && (
