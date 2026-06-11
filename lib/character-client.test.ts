@@ -54,6 +54,14 @@ describe("characterClient", () => {
     expect(init.headers["Idempotency-Key"]).toBe("key-123");
   });
 
+  it("confirm は予約確定エンドポイントへ POST する", async () => {
+    fetchMock.mockResolvedValue(okJson({ id: "x" }));
+    await characterClient.confirm("x");
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://character-api:8080/api/v1/characters/x/confirm");
+    expect(init.method).toBe("POST");
+  });
+
   it("update は expectedVersion を引用付き If-Match で送る", async () => {
     fetchMock.mockResolvedValue(okJson({ id: "x" }));
     await characterClient.update("x", { name: "n", raceId: "r", gender: "unknown" }, 3);

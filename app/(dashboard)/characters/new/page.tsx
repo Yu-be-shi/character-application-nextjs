@@ -31,6 +31,10 @@ export default async function NewCharacterPage() {
     // フォームが生成した冪等キー（二重送信を API 側で重複排除）。
     const idempotencyKey = (formData.get("idempotencyKey") as string) || undefined;
 
+    // 予約パターンの 3 段書き込み: ①作成(pending・不可視) → ②所有リンク → ③確定(active・可視)。
+    // 確定を最後に置くことで「可視なキャラは必ず所有者を持つ」(R1) を保証する。失敗しても
+    // 未確定のまま残るだけで、可視データに穴は空かず、未確定は API 側の TTL が回収する
+    // （消費者が origin を削除しない＝R3 を守る。補償削除は不要）。
     let character;
     try {
       character = await characterClient.create(parsed.data, idempotencyKey);
@@ -39,24 +43,34 @@ export default async function NewCharacterPage() {
       return { error: tf("errCreate") };
     }
 
-    // API 作成と所有権紐付けは別ストアへの2段書き込み。後段が失敗したら、
-    // 作成済みキャラクターを削除して整合を保つ（孤児キャラ防止の補償処理）。
+    // ② 所有リンク（再送で既にリンク済み＝P2002 は握り潰して③へ進む。
+    //    create は同一 Idempotency-Key で同じ id を返すため再送安全）。
     try {
       await prisma.userCharacter.create({
         data: { userId: session.user.id, characterId: character.id },
       });
     } catch (e) {
-      // P2002（ユニーク制約違反）＝既にリンク済み。同一 Idempotency-Key の再送で
-      // API が同じキャラクターを再生したケースであり、正常終了として扱う。
-      // ここで補償削除するとリンク済みの正規キャラクター本体を消してしまう。
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-        redirect("/characters");
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) {
+        // リンク失敗。キャラは未確定のままなので可視化されず、TTL で回収される。
+        console.error(
+          "userCharacter link failed; character stays unconfirmed (reclaimed by TTL)",
+          character.id,
+          e,
+        );
+        return { error: tf("errSave") };
       }
-      console.error("userCharacter link failed; compensating delete", character.id, e);
-      await characterClient.delete(character.id).catch((delErr) => {
-        // 補償削除も失敗すると孤児キャラが残る。後で検知・掃除できるよう必ずログに残す。
-        console.error("compensating delete failed; orphan may remain", character.id, delErr);
-      });
+      // P2002 = 既にリンク済み（再送）。確定（③）へ進む。
+    }
+
+    // ③ 確定して可視化（冪等）。失敗しても未確定のまま TTL 回収に委ねる。
+    try {
+      await characterClient.confirm(character.id);
+    } catch (e) {
+      console.error(
+        "character confirm failed; stays unconfirmed (reclaimed by TTL)",
+        character.id,
+        e,
+      );
       return { error: tf("errSave") };
     }
 

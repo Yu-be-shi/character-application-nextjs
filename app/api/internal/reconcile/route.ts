@@ -3,23 +3,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { characterClient, type Character } from "@/lib/character-client";
 
-// キャラクターと所有リンクのリコンサイル（保険）。
+// 宙吊りリンク（dangling link）の掃除（保険）。
 //
-// キャラクター作成は「character-api で作成 → MySQL の UserCharacter に紐付け」の2段書き込み。
-// 通常は作成 Server Action の補償処理で整合を保つが、プロセス断などでズレると
-// 2方向の不整合が残りうる。このエンドポイントは両方向を検知・掃除する:
-//   1. 孤児キャラ   … API には存在するが所有者（UserCharacter）がいない → API から削除
-//   2. 宙吊りリンク … UserCharacter はあるが API 側キャラが消滅している → リンクを削除
+// 作成は予約パターンの3段書き込み（作成(pending) → 所有リンク → 確定）。確定が最後なので
+// 「可視なキャラは必ず所有者を持つ」(R1) は保たれ、未確定の余りは character-api 側の TTL が回収する。
+// それでも稀に「リンクは作れたが確定前にプロセス断 → そのキャラが TTL 回収された」場合、
+// 所有者だけが残る（宙吊りリンク）。このエンドポイントは consumer 自身のデータ（MySQL の
+// UserCharacter）だけを掃除する:
+//   宙吊りリンク … UserCharacter はあるが API 側に可視キャラが無い → リンクを削除
 //
-// - 専用キー（RECONCILE_API_KEY。未設定時は CHARACTER_API_KEY にフォールバック）で保護
+// ※ かつてあった「孤児キャラ（API にあるが所有者なし）を API から削除」は撤去した。
+//   それは consumer が「自分の DB にリンクが無い＝消してよい」とみなして origin を削除する操作で、
+//   複数 consumer 環境では他 consumer 所有のキャラを消しうる（R3 違反）。可視データの origin 削除は
+//   所有者経由（assertOwnership 済みの削除）のみとし、未確定の回収は origin 側 TTL に一本化した。
+//
+// - 専用キー（RECONCILE_API_KEY）必須で保護。未設定ならエンドポイント無効（404）。
+//   app↔API の共有鍵（CHARACTER_API_KEY）では認可しない＝破壊操作の露出面を分離する（最小権限）。
 // - ?apply=1 を付けない限りドライラン（検知のみ・削除しない）
-// - 作成直後のレースを避けるため、一定時間（既定1時間）より古いものだけ対象
-//
-// ※ 所有権は application（MySQL/UserCharacter）が握るため、この処理は character-api 側ではなく
-//   ここで行う（依存方向と所有権境界を保つ）。
+// - 作成直後/確定前のレースを避けるため、一定時間（既定1時間＝予約 TTL と整合）より古いものだけ対象
 export const dynamic = "force-dynamic";
 
-const ORPHAN_MIN_AGE_MS = 60 * 60 * 1000; // 1 時間
+const DANGLING_MIN_AGE_MS = 60 * 60 * 1000; // 1 時間（character-api の予約 TTL と揃える）
 
 /** API の一覧を limit/offset でページングしながら全件集める（API はデフォルト上限を持つ）。 */
 const LIST_PAGE_SIZE = 500;
@@ -32,15 +36,23 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  // 破壊的（キャラ一括削除）エンドポイントなので専用キー必須。app↔API の共有鍵には
+  // フォールバックしない（最小権限・露出面の分離）。未設定なら「存在しない」ものとして
+  // 404 を返し、外部には何も晒さない（運用者にはサーバーログで気づかせる）。
+  const expected = process.env.RECONCILE_API_KEY;
+  if (!expected) {
+    console.warn(
+      "reconcile: RECONCILE_API_KEY が未設定のためエンドポイントを無効化（404）。有効化するには専用キーを設定してください。",
+    );
+    return NextResponse.json({ message: "not found" }, { status: 404 });
+  }
   const key = req.headers.get("x-internal-api-key");
-  // app→API 用シークレットの流用を避け、専用キーを優先する（信頼ドメインの分離）。
-  const expected = process.env.RECONCILE_API_KEY || process.env.CHARACTER_API_KEY;
-  if (!key || !expected || !safeEqual(key, expected)) {
+  if (!key || !safeEqual(key, expected)) {
     return NextResponse.json({ message: "unauthorized" }, { status: 401 });
   }
 
   const apply = req.nextUrl.searchParams.get("apply") === "1";
-  const cutoff = new Date(Date.now() - ORPHAN_MIN_AGE_MS);
+  const cutoff = new Date(Date.now() - DANGLING_MIN_AGE_MS);
 
   const [all, links] = await Promise.all([
     listAllCharacters(),
@@ -49,46 +61,25 @@ export async function POST(req: NextRequest) {
     }),
   ]);
   const apiIds = new Set(all.map((c) => c.id));
-  const owned = new Set(links.map((l) => l.characterId));
 
-  // 1. 孤児キャラ: API に存在 / 所有リンクなし / 作成から一定時間経過。
-  const orphans = all.filter((c) => !owned.has(c.id) && new Date(c.createdAt) < cutoff);
-
-  // 2. 宙吊りリンク: 所有リンクあり / API 側キャラ消滅（論理削除済み含む）/ 作成から一定時間経過。
+  // 宙吊りリンク: 所有リンクはあるが API 側に可視キャラが無い（確定前に回収された等）/
+  // 作成から一定時間経過。consumer 自身のデータ（MySQL のリンク）だけを掃除する。
   const dangling = links.filter((l) => !apiIds.has(l.characterId) && l.createdAt < cutoff);
 
-  // 1 件の削除失敗で全体を止めず、失敗分はレスポンスに載せて次回実行に委ねる。
-  let deletedOrphans = 0;
   let deletedLinks = 0;
-  const failed: string[] = [];
-  if (apply) {
-    for (const o of orphans) {
-      try {
-        await characterClient.delete(o.id);
-        deletedOrphans++;
-      } catch (e) {
-        console.error("reconcile: orphan delete failed", o.id, e);
-        failed.push(o.id);
-      }
-    }
-    if (dangling.length > 0) {
-      const res = await prisma.userCharacter.deleteMany({
-        where: { id: { in: dangling.map((l) => l.id) } },
-      });
-      deletedLinks = res.count;
-    }
+  if (apply && dangling.length > 0) {
+    const res = await prisma.userCharacter.deleteMany({
+      where: { id: { in: dangling.map((l) => l.id) } },
+    });
+    deletedLinks = res.count;
   }
 
   return NextResponse.json({
     scanned: all.length,
-    orphanCount: orphans.length,
-    orphanIds: orphans.map((o) => o.id),
     danglingLinkCount: dangling.length,
     danglingCharacterIds: dangling.map((l) => l.characterId),
     applied: apply,
-    deleted: deletedOrphans,
     deletedLinks,
-    failed,
   });
 }
 

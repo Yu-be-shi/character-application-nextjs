@@ -105,13 +105,18 @@ export const characterClient = {
     return request<CharacterList>(`/api/v1/characters${q ? `?${q}` : ""}`);
   },
   get: (id: string) => request<Character>(`/api/v1/characters/${id}`),
-  // idempotencyKey を渡すと二重送信が API 側で重複排除される（POST のみ）。
+  // 予約パターン: create は pending（不可視）として作成する。所有リンクを書いた後に
+  // confirm で active（可視）へ昇格させる。idempotencyKey を渡すと二重送信が API 側で
+  // 重複排除される（Redis のミドルウェアに加え、DB の creation_token 一意制約でも永続的に防止）。
   create: (input: CreateCharacterInput, idempotencyKey?: string) =>
     request<Character>("/api/v1/characters", {
       method: "POST",
       body: JSON.stringify(input),
       headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     }),
+  // 予約の確定（pending → active）。冪等。所有リンク作成後に呼ぶ。
+  confirm: (id: string) =>
+    request<Character>(`/api/v1/characters/${id}/confirm`, { method: "POST" }),
   // PUT は全置換（省略した任意項目は API 側でクリアされる）ため、引数型は
   // 部分更新用の UpdateCharacterInput ではなく作成時と同じ完全な形を要求する。
   // expectedVersion を渡すと楽観ロック（If-Match）。版不一致は API が 412 を返す。

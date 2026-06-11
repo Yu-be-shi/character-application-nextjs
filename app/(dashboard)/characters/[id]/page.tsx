@@ -36,17 +36,20 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     // UI でボタンを隠すだけでなくサーバー側で再確認する。
     await assertOwnership(session.user.id, id);
 
-    // 先に所有紐付けを消し、その後 API を削除する。API 側の削除が失敗しても
-    // reconcile（孤児キャラ掃除）が後で回収できる順序にする。
-    // 消すのは自分のリンクだけ（スキーマ上は複数所有が可能なため、他ユーザーの
-    // 所有権を巻き添えにしない）。最後の所有者だった場合のみ API 本体を削除する。
+    // 自分以外の所有者がいなければ、先に API 本体を削除し、その後に自分のリンクを消す。
+    // この順序にするのは、reconcile から「孤児キャラ掃除」を撤去したため:
+    // 途中で失敗しても残るのは「宙吊りリンク（API に無い行を指すリンク）」で reconcile が掃除できる。
+    // 逆順（リンク先消し）だと API 削除失敗時に回収不能な孤児（所有者なしの可視キャラ）が残る。
+    // 消す/参照するのは自分のリンクだけ（スキーマ上は複数所有が可能なため他ユーザーを巻き添えにしない）。
+    const otherOwners = await prisma.userCharacter.count({
+      where: { characterId: id, NOT: { userId: session.user.id } },
+    });
+    if (otherOwners === 0) {
+      await characterClient.delete(id); // 論理削除（最後の所有者のときのみ）
+    }
     await prisma.userCharacter.deleteMany({
       where: { userId: session.user.id, characterId: id },
     });
-    const remaining = await prisma.userCharacter.count({ where: { characterId: id } });
-    if (remaining === 0) {
-      await characterClient.delete(id);
-    }
     redirect("/characters");
   }
 

@@ -46,7 +46,7 @@ services:
       DATABASE_URL: "mysql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-db:3306/${USER_DB_NAME}"
       CHARACTER_API_URL: "http://character-api:8080"
       CHARACTER_API_KEY: ${INTERNAL_API_KEY}
-      # /api/internal/reconcile の専用キー（空なら CHARACTER_API_KEY にフォールバック）。
+      # /api/internal/reconcile（破壊的・宙吊りリンク掃除）の専用キー。未設定ならエンドポイント無効（404）。
       RECONCILE_API_KEY: ${RECONCILE_API_KEY:-}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
