@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { raceClient, characterClient } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
@@ -28,8 +29,12 @@ export default async function NewCharacterPage() {
     const parsed = parseCharacterForm(formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
-    // フォームが生成した冪等キー（二重送信を API 側で重複排除）。
-    const idempotencyKey = (formData.get("idempotencyKey") as string) || undefined;
+    // 冪等キー（二重送信を API 側で重複排除）。通常はフォームが生成して hidden で送るが、
+    // ハイドレーション前の送信や no-JS でキーが空のことがある。その場合でも HTTP 層での
+    // 重複排除を保証するため、サーバー側で必ずトークンを補う（DB の creation_token 一意
+    // 制約は最終防壁だが、空トークン送信に依存しない）。
+    const idempotencyKey =
+      (formData.get("idempotencyKey") as string)?.trim() || crypto.randomUUID();
 
     // 予約パターンの 3 段書き込み: ①作成(pending・不可視) → ②所有リンク → ③確定(active・可視)。
     // 確定を最後に置くことで「可視なキャラは必ず所有者を持つ」(R1) を保証する。失敗しても
@@ -74,6 +79,10 @@ export default async function NewCharacterPage() {
       return { error: tf("errSave") };
     }
 
+    // 確定済み（可視）になったので一覧・ギャラリーのキャッシュを無効化してから遷移する
+    // （Router Cache が古い一覧を出さないように）。
+    revalidatePath("/characters");
+    revalidatePath("/gallery");
     redirect("/characters");
   }
 

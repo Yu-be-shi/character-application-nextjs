@@ -85,12 +85,11 @@ export function CharacterForm({
   const fe = state.fieldErrors ?? {};
   const d = defaults ?? {};
 
-  // 二重送信防止用の冪等キー。送信結果（エラー含む）が返るたびに再発行する。
-  // 固定キーのまま再送すると、サーバー側で補償削除された前回の作成レスポンスを
-  // API が再生し、存在しないキャラクターに紐付いてしまう（幽霊キャラ）ため。
+  // 二重送信防止用の冪等キー。送信結果（エラー含む）が返るたびに再発行し、
+  // 別の作成として扱えるようにする（同一キーの再送は API が前回結果を再生するため）。
   // レンダー中に crypto.randomUUID() を呼ぶと SSR とクライアントで値がズレて
   // hydration mismatch になるため、マウント後（と結果が返るたび）に発行する。
-  // ハイドレーション前の送信ではキーが空＝重複排除なしのフォールバックになる。
+  // ハイドレーション前の送信でキーが空になっても、Server Action 側でトークンを補う。
   const [idemKey, setIdemKey] = useState("");
   useEffect(() => {
     if (withIdempotencyKey) setIdemKey(crypto.randomUUID());

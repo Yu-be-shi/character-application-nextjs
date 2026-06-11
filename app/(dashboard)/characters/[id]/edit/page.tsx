@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import {
   characterClient,
   raceClient,
@@ -73,6 +74,10 @@ export default async function EditCharacterPage({ params }: { params: Promise<{ 
       return { error: tf("errUpdate") };
     }
 
+    // 更新が反映されたので関連ページのキャッシュを無効化してから遷移する。
+    revalidatePath("/characters");
+    revalidatePath(`/characters/${id}`);
+    revalidatePath("/gallery");
     redirect(`/characters/${id}`);
   }
 
