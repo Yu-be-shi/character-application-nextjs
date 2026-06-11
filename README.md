@@ -14,7 +14,7 @@
 | フレームワーク  | Next.js 15（App Router）                                                                    |
 | 認証            | NextAuth.js v5（Auth.js, Google OAuth, DB セッション）                                      |
 | ORM             | Prisma                                                                                      |
-| ユーザーDB      | MySQL（`platform-infra` ではなくこのリポジトリの compose が起動）                           |
+| ユーザーDB      | MySQL（`ys-infrastructure` ではなくこのリポジトリの compose が起動）                        |
 | キャラクターAPI | `character-api`（Go）へ HTTP リクエスト                                                     |
 | 入力検証        | zod（`lib/character-form.ts`）                                                              |
 | テスト          | vitest（`lib/`・`components/` の単体/コンポーネント）+ Playwright E2E（`npm run test:e2e`） |
@@ -62,7 +62,7 @@ curl -X POST -H "X-Internal-API-Key: $RECONCILE_API_KEY" \
 
 推奨はルート（character-system）の手順に従い `docker compose up --build` で MySQL + Next.js を
 起動する方法（`docker-entrypoint.sh` が起動時に `prisma migrate deploy` を実行）。前提として
-`platform-infra` の基盤スタック（PostgreSQL + migrate + Go API）を先に起動し、`character-db-net`
+`ys-infrastructure` の基盤スタック（PostgreSQL + migrate + Go API）を先に起動し、`character-db-net`
 経由で `character-api` に到達できること。
 
 ```bash
@@ -99,7 +99,7 @@ Go の構造体を変えたら型を再生成し、ドリフトをコンパイ�
 
 ```bash
 # 1. Go の OpenAPI 仕様(swagger 2.0)を取り込み 3.0 へ変換して openapi/ にベンダリング
-#    （隣接リポジトリ apis/character-api-go の docs/swagger.yaml を参照。Go 側で swag init 済みのこと）
+#    （隣接リポジトリ apis/ys-character-api の docs/swagger.yaml を参照。Go 側で swag init 済みのこと）
 npm run sync:api-spec
 # 2. 3.0 仕様から型を生成（ビルド/CI はこの生成物だけ使うのでサーバー起動不要）
 npm run generate:types
