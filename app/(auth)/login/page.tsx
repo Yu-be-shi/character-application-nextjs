@@ -1,7 +1,12 @@
-import { signIn } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { auth, signIn } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 
 export default async function LoginPage() {
+  // ログイン済みならログインページを見せずダッシュボードへ。
+  const session = await auth();
+  if (session?.user?.id) redirect("/characters");
+
   const t = await getTranslations("login");
   return (
     <main style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>

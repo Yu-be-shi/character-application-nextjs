@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { raceClient, characterClient } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { parseCharacterForm } from "@/lib/character-form";
 import { CharacterForm, type CharacterFormState } from "@/components/character-form";
 import { getTranslations } from "next-intl/server";
@@ -45,6 +46,12 @@ export default async function NewCharacterPage() {
         data: { userId: session.user.id, characterId: character.id },
       });
     } catch (e) {
+      // P2002（ユニーク制約違反）＝既にリンク済み。同一 Idempotency-Key の再送で
+      // API が同じキャラクターを再生したケースであり、正常終了として扱う。
+      // ここで補償削除するとリンク済みの正規キャラクター本体を消してしまう。
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        redirect("/characters");
+      }
       console.error("userCharacter link failed; compensating delete", character.id, e);
       await characterClient.delete(character.id).catch((delErr) => {
         // 補償削除も失敗すると孤児キャラが残る。後で検知・掃除できるよう必ずログに残す。

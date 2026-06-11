@@ -1,0 +1,9 @@
+# STG（自宅サーバー）用のオーバーライド。
+# 公開するのはダッシュボードの 3000 のみ（LAN 内からの動作確認用）。
+# MySQL はコンテナ間ネットワークでのみ到達可能とし、ホストには公開しない。
+# 使い方: docker compose -f docker-compose.yml -f docker-compose.stg.yml up -d --build
+
+services:
+  user-dashboard:
+    ports:
+      - "3000:3000"

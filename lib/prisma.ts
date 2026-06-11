@@ -1,3 +1,5 @@
+// DB 接続を持つサーバー専用モジュール（Client Component からの誤 import をビルド時に検知）。
+import "server-only";
 import { PrismaClient } from "@prisma/client";
 
 // Next.js の開発環境でホットリロード時に接続が増殖しないようにシングルトン化する

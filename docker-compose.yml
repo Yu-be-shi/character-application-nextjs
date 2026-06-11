@@ -39,12 +39,15 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
-    ports:
-      - "3000:3000"
+    # ポート公開は環境別に分ける（base では公開しない）:
+    #   ローカル開発 → docker-compose.override.yml（自動ロード。3000 と デバッグ用 3306）
+    #   STG（自宅）  → docker-compose.stg.yml（3000 のみ。MySQL は公開しない）
     environment:
       DATABASE_URL: "mysql://${USER_DB_USER}:${USER_DB_PASSWORD}@user-db:3306/${USER_DB_NAME}"
       CHARACTER_API_URL: "http://character-api:8080"
       CHARACTER_API_KEY: ${INTERNAL_API_KEY}
+      # /api/internal/reconcile の専用キー（空なら CHARACTER_API_KEY にフォールバック）。
+      RECONCILE_API_KEY: ${RECONCILE_API_KEY:-}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
       AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET}

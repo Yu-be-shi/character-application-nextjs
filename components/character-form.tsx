@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { GENDERS } from "@/lib/constants";
@@ -88,18 +88,17 @@ export function CharacterForm({
   // 二重送信防止用の冪等キー。送信結果（エラー含む）が返るたびに再発行する。
   // 固定キーのまま再送すると、サーバー側で補償削除された前回の作成レスポンスを
   // API が再生し、存在しないキャラクターに紐付いてしまう（幽霊キャラ）ため。
-  const idemKeyRef = useRef<string>("");
-  const lastStateRef = useRef<CharacterFormState | null>(null);
-  if (withIdempotencyKey && (!idemKeyRef.current || lastStateRef.current !== state)) {
-    idemKeyRef.current = crypto.randomUUID();
-    lastStateRef.current = state;
-  }
+  // レンダー中に crypto.randomUUID() を呼ぶと SSR とクライアントで値がズレて
+  // hydration mismatch になるため、マウント後（と結果が返るたび）に発行する。
+  // ハイドレーション前の送信ではキーが空＝重複排除なしのフォールバックになる。
+  const [idemKey, setIdemKey] = useState("");
+  useEffect(() => {
+    if (withIdempotencyKey) setIdemKey(crypto.randomUUID());
+  }, [withIdempotencyKey, state]);
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {withIdempotencyKey && (
-        <input type="hidden" name="idempotencyKey" value={idemKeyRef.current} />
-      )}
+      {withIdempotencyKey && <input type="hidden" name="idempotencyKey" value={idemKey} />}
       {version != null && (
         <input type="hidden" name="version" value={state.latestVersion ?? version} />
       )}

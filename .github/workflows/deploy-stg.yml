@@ -25,4 +25,6 @@ jobs:
           cd "$ROOT/applications/character-application-nextjs"
           git fetch origin develop && git reset --hard origin/develop
           # 起動時に docker-entrypoint.sh が prisma migrate deploy を実行する。
-          docker compose up -d --build
+          # override（ローカル開発用。MySQL のホスト公開を含む）を読み込まないよう
+          # -f で base + stg を明示する。STG が公開するのはダッシュボード 3000 のみ。
+          docker compose -f docker-compose.yml -f docker-compose.stg.yml up -d --build
