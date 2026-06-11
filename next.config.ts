@@ -27,8 +27,26 @@ const securityHeaders = [
   },
 ];
 
+// Server Actions の CSRF 対策: 許可するオリジンを NEXTAUTH_URL から導出する。
+// Next.js は同一オリジン以外からの Server Action 呼び出しをデフォルトで拒否するが、
+// allowedOrigins を明示することで reverse proxy 経由やカスタムドメインにも対応できる。
+// https://nextjs.org/docs/app/api-reference/next-config-js/serverActions
+const serverActionAllowedOrigins: string[] = (() => {
+  const raw = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  try {
+    return [new URL(raw).host]; // "localhost:3000" / "app.example.com" 形式に変換
+  } catch {
+    return ["localhost:3000"];
+  }
+})();
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: {
+    serverActions: {
+      allowedOrigins: serverActionAllowedOrigins,
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
