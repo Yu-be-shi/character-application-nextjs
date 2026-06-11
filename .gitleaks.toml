@@ -1,0 +1,12 @@
+# gitleaks 設定。デフォルトルールは維持しつつ、テストのダミー値を除外する。
+# 既定ルールの誤検知（例: lib/character-client.test.ts の "test-key" を generic-api-key と判定）を抑える。
+# 実コードのシークレット検出は引き続き有効（allowlist はテストファイルに限定）。
+[extend]
+useDefault = true
+
+[allowlist]
+description = "テストのダミー値（実シークレットではない）"
+paths = [
+  '''.*\.test\.tsx?$''',
+  '''.*\.test\.jsx?$''',
+]
