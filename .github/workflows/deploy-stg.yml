@@ -3,9 +3,11 @@
 # DB・API スタックが先に起動済みで character-db-net 経由で character-api に到達できること。
 name: Deploy STG (home)
 
+# STG は `staging` ブランチの鏡。develop マージでは STG を触らない。staging へ promote
+# するか手動（workflow_dispatch）でデプロイ。runner オフライン時は queue → online で消化。
 on:
   push:
-    branches: [develop]
+    branches: [staging]
   workflow_dispatch:
 
 concurrency:
@@ -23,7 +25,7 @@ jobs:
           set -euo pipefail
           ROOT="${STG_ROOT:-$HOME/character-system}"
           cd "$ROOT/applications/character-application-nextjs"
-          git fetch origin develop && git reset --hard origin/develop
+          git fetch origin staging && git reset --hard origin/staging
           # 起動時に docker-entrypoint.sh が prisma migrate deploy を実行する。
           # override（ローカル開発用。MySQL のホスト公開を含む）を読み込まないよう
           # -f で base + stg を明示する。STG が公開するのはダッシュボード 3000 のみ。
