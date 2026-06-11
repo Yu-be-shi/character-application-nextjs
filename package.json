@@ -18,7 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "prepare": "husky || true",
-    "sync:api-spec": "swagger2openapi ../../apis/character-api-go/docs/swagger.yaml --outfile openapi/character-api.openapi.json --patch",
+    "sync:api-spec": "swagger2openapi ../../apis/ys-character-api/docs/swagger.yaml --outfile openapi/character-api.openapi.json --patch",
     "generate:types": "openapi-typescript openapi/character-api.openapi.json -o lib/api-types.gen.ts"
   },
   "lint-staged": {
