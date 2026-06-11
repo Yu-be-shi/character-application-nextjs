@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { characterClient, CharacterApiError } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
 import { assertOwnership, isOwner } from "@/lib/authz";
@@ -14,6 +15,8 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
 
   const { id } = await params;
 
+  // 【設計意図】詳細は共用ショーケースの一部: ログイン済みなら誰でも閲覧可（読み取り認可は掛けない）。
+  // owner 判定（下の isOwner）は編集/削除ボタンの出し分けにのみ使う。
   let character;
   try {
     character = await characterClient.get(id);
@@ -50,6 +53,10 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     await prisma.userCharacter.deleteMany({
       where: { userId: session.user.id, characterId: id },
     });
+    // 削除を一覧・ギャラリー・詳細のキャッシュへ反映してから遷移する。
+    revalidatePath("/characters");
+    revalidatePath(`/characters/${id}`);
+    revalidatePath("/gallery");
     redirect("/characters");
   }
 

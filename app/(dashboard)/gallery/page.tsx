@@ -14,6 +14,10 @@ export default async function GalleryPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  // 【設計意図】ギャラリーは「共用ショーケース」: ログイン済みユーザーは全員の確定済み
+  // キャラを閲覧できる（owner フィルタは意図的に掛けない）。所有者限定なのは編集/削除のみ。
+  // 読み取りを所有者限定にしたい場合は characterClient.list({ ids }) に切り替えること。
+
   const t = await getTranslations("gallery");
   const tg = await getTranslations("gender");
   const { page: pageParam } = await searchParams;
