@@ -1,6 +1,7 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { characterClient } from "@/lib/character-client";
+import { characterClient, type Character } from "@/lib/character-client";
 
 // 孤児キャラクターのリコンサイル（保険）。
 //
@@ -19,28 +20,46 @@ export const dynamic = "force-dynamic";
 
 const ORPHAN_MIN_AGE_MS = 60 * 60 * 1000; // 1 時間
 
+/** API の一覧を limit/offset でページングしながら全件集める（API はデフォルト上限を持つ）。 */
+const LIST_PAGE_SIZE = 500;
+
+/** タイミング攻撃に耐性のある文字列比較。長さ不一致は即 false（長さは秘密ではない）。 */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
+
 export async function POST(req: NextRequest) {
   const key = req.headers.get("x-internal-api-key");
-  if (!key || key !== process.env.CHARACTER_API_KEY) {
+  const expected = process.env.CHARACTER_API_KEY;
+  if (!key || !expected || !safeEqual(key, expected)) {
     return NextResponse.json({ message: "unauthorized" }, { status: 401 });
   }
 
   const apply = req.nextUrl.searchParams.get("apply") === "1";
   const cutoff = Date.now() - ORPHAN_MIN_AGE_MS;
 
-  const [{ items: all }, links] = await Promise.all([
-    characterClient.list(),
+  const [all, links] = await Promise.all([
+    listAllCharacters(),
     prisma.userCharacter.findMany({ select: { characterId: true } }),
   ]);
   const owned = new Set(links.map((l) => l.characterId));
 
   const orphans = all.filter((c) => !owned.has(c.id) && new Date(c.createdAt).getTime() < cutoff);
 
+  // 1 件の削除失敗で全体を止めず、失敗分はレスポンスに載せて次回実行に委ねる。
   let deleted = 0;
+  const failed: string[] = [];
   if (apply) {
     for (const o of orphans) {
-      await characterClient.delete(o.id);
-      deleted++;
+      try {
+        await characterClient.delete(o.id);
+        deleted++;
+      } catch (e) {
+        console.error("reconcile: orphan delete failed", o.id, e);
+        failed.push(o.id);
+      }
     }
   }
 
@@ -50,5 +69,15 @@ export async function POST(req: NextRequest) {
     orphanIds: orphans.map((o) => o.id),
     applied: apply,
     deleted,
+    failed,
   });
+}
+
+async function listAllCharacters(): Promise<Character[]> {
+  const all: Character[] = [];
+  for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+    const { items, total } = await characterClient.list({ limit: LIST_PAGE_SIZE, offset });
+    all.push(...items);
+    if (items.length === 0 || all.length >= total) return all;
+  }
 }

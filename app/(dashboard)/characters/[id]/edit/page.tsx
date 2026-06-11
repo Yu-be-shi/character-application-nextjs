@@ -25,8 +25,10 @@ export default async function EditCharacterPage({ params }: { params: Promise<{ 
   let character: Character;
   try {
     character = await characterClient.get(id);
-  } catch {
-    notFound();
+  } catch (e) {
+    // 404 のときだけ「見つかりません」。API ダウン等はエラーバウンダリに流す。
+    if (e instanceof CharacterApiError && e.status === 404) notFound();
+    throw e;
   }
 
   const races = await raceClient.list();
@@ -46,12 +48,26 @@ export default async function EditCharacterPage({ params }: { params: Promise<{ 
     const parsed = parseCharacterForm(formData);
     if (!parsed.success) return { fieldErrors: parsed.fieldErrors };
 
+    // If-Match に使う版。初回は表示時に読み込んだ版、412 後の再送信は
+    // フォーム状態経由で受け取った最新版（hidden input）を使う。
+    // 版は楽観ロックの期待値であり認可情報ではないため、クライアント経由でよい
+    // （所有権は上の isOwner で別途検証済み）。
+    const rawVersion = Number(formData.get("version"));
+    const expectedVersion =
+      Number.isInteger(rawVersion) && rawVersion > 0 ? rawVersion : character.version;
+
     try {
-      // 表示時に読み込んだ版を If-Match で送る（楽観ロック）。
-      await characterClient.update(id, parsed.data, character.version);
+      await characterClient.update(id, parsed.data, expectedVersion);
     } catch (e) {
       if (e instanceof CharacterApiError && e.status === 412) {
-        return { error: tf("errConflict") };
+        // 競合を通知しつつ最新版を返す。ユーザーが内容を確認して再送信すれば
+        // 入力を失わずに保存できる（再送信は最新版への上書きになる）。
+        try {
+          const latest = await characterClient.get(id);
+          return { error: tf("errConflict"), latestVersion: latest.version };
+        } catch {
+          return { error: tf("errConflict") };
+        }
       }
       console.error("character update failed", id, e);
       return { error: tf("errUpdate") };
@@ -88,6 +104,7 @@ export default async function EditCharacterPage({ params }: { params: Promise<{ 
         }}
         mode="edit"
         cancelHref={`/characters/${id}`}
+        version={character.version}
       />
     </div>
   );

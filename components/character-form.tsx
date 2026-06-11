@@ -27,6 +27,8 @@ export type CharacterFormDefaults = {
 export type CharacterFormState = {
   fieldErrors?: Record<string, string>;
   error?: string;
+  /** 楽観ロック競合（412）時にサーバーが返す最新版。次回送信の If-Match に使う。 */
+  latestVersion?: number;
 };
 
 export type CharacterFormAction = (
@@ -66,6 +68,7 @@ export function CharacterForm({
   mode,
   cancelHref,
   withIdempotencyKey = false,
+  version,
 }: {
   action: CharacterFormAction;
   races: Race[];
@@ -73,6 +76,8 @@ export function CharacterForm({
   mode: "create" | "edit";
   cancelHref: string;
   withIdempotencyKey?: boolean;
+  /** 編集時の楽観ロック版。412 後はサーバーが返した latestVersion で上書きされる。 */
+  version?: number;
 }) {
   const t = useTranslations("form");
   const tg = useTranslations("gender");
@@ -80,16 +85,23 @@ export function CharacterForm({
   const fe = state.fieldErrors ?? {};
   const d = defaults ?? {};
 
-  // 二重送信防止用の冪等キー。このフォーム1インスタンスにつき1つ（再マウントで再生成）。
+  // 二重送信防止用の冪等キー。送信結果（エラー含む）が返るたびに再発行する。
+  // 固定キーのまま再送すると、サーバー側で補償削除された前回の作成レスポンスを
+  // API が再生し、存在しないキャラクターに紐付いてしまう（幽霊キャラ）ため。
   const idemKeyRef = useRef<string>("");
-  if (withIdempotencyKey && !idemKeyRef.current) {
+  const lastStateRef = useRef<CharacterFormState | null>(null);
+  if (withIdempotencyKey && (!idemKeyRef.current || lastStateRef.current !== state)) {
     idemKeyRef.current = crypto.randomUUID();
+    lastStateRef.current = state;
   }
 
   return (
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {withIdempotencyKey && (
         <input type="hidden" name="idempotencyKey" value={idemKeyRef.current} />
+      )}
+      {version != null && (
+        <input type="hidden" name="version" value={state.latestVersion ?? version} />
       )}
       {state.error && (
         <p

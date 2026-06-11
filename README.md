@@ -62,6 +62,25 @@ npx prisma migrate dev
 > `character-db-infra` → `character-api-go-infra` を先に起動し、`character-db-net` 経由で
 > `character-api` に到達できること。
 
+## character-api の型生成（OpenAPI → TypeScript）
+
+`lib/character-client.ts` の型は `character-api`（Go）の OpenAPI 仕様から自動生成する。
+Go の構造体を変えたら型を再生成し、ドリフトをコンパイル時に検出できるようにする。
+
+```bash
+# 1. Go の OpenAPI 仕様(swagger 2.0)を取り込み 3.0 へ変換して openapi/ にベンダリング
+#    （隣接リポジトリ apis/character-api-go の docs/swagger.yaml を参照。Go 側で swag init 済みのこと）
+npm run sync:api-spec
+# 2. 3.0 仕様から型を生成（ビルド/CI はこの生成物だけ使うのでサーバー起動不要）
+npm run generate:types
+```
+
+- 生成物 `openapi/character-api.openapi.json` と `lib/api-types.gen.ts` はコミットする
+  （消費側がツールチェーン無しでビルドできるように）。
+- `openapi-typescript` は swagger 2.0 を受け付けないため、`swagger2openapi` で 3.0 へ変換する一段を挟む。
+- 生成型は swaggo(2.0) 由来でレスポンス全項目が optional・`gender` が `string` になる。
+  `character-client.ts` 側で「必ず返る項目の必須化」と「`gender` の列挙化」を薄い refinement 層で補正している。
+
 ## 環境変数
 
 | 変数名               | 説明                                                               |

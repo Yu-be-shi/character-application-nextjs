@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
-import { characterClient } from "@/lib/character-client";
+import { characterClient, CharacterApiError } from "@/lib/character-client";
 import { prisma } from "@/lib/prisma";
 import { assertOwnership, isOwner } from "@/lib/authz";
 import { getTranslations } from "next-intl/server";
@@ -17,25 +17,29 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
   let character;
   try {
     character = await characterClient.get(id);
-  } catch {
-    notFound();
+  } catch (e) {
+    // 404 のときだけ「見つかりません」。API ダウン等は誤魔化さず
+    // エラーバウンダリ（error.tsx）に流す。
+    if (e instanceof CharacterApiError && e.status === 404) notFound();
+    throw e;
   }
 
   const owner = await isOwner(session.user.id, id);
 
-  async function handleDelete(formData: FormData) {
+  async function handleDelete() {
     "use server";
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 
-    const charId = formData.get("characterId") as string;
+    // 削除対象はクライアント由来の値ではなく、表示中ページのルートパラメータ
+    // （Server Action のクロージャ）を使う。所有者本人のみ削除できることも
+    // UI でボタンを隠すだけでなくサーバー側で再確認する。
+    await assertOwnership(session.user.id, id);
 
-    // 所有者本人のみ削除できる。UI でボタンを隠すだけでなくサーバー側でも
-    // 紐付けを再確認し、なりすまし削除を防ぐ（クライアント由来の ID を信用しない）。
-    await assertOwnership(session.user.id, charId);
-
-    await characterClient.delete(charId);
-    await prisma.userCharacter.deleteMany({ where: { characterId: charId } });
+    // 先に所有紐付けを消し、その後 API を削除する。API 側の削除が失敗しても
+    // reconcile（孤児キャラ掃除）が後で回収できる順序にする。
+    await prisma.userCharacter.deleteMany({ where: { characterId: id } });
+    await characterClient.delete(id);
     redirect("/characters");
   }
 
@@ -43,7 +47,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
     <div style={{ maxWidth: "640px" }}>
       <div style={{ marginBottom: "24px" }}>
         <Link href="/characters" style={{ fontSize: "13px", color: "#6c757d" }}>
-          ← マイキャラクターに戻る
+          {t("back")}
         </Link>
       </div>
 
@@ -71,7 +75,6 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
               {t("edit")}
             </Link>
             <form action={handleDelete}>
-              <input type="hidden" name="characterId" value={id} />
               <button
                 type="submit"
                 style={{

@@ -44,6 +44,12 @@ export const characterFormSchema = z.object({
     z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "生年月日の形式が不正です")
+      // 形式だけでなく暦として実在する日付か検証する（2026-02-31 等を弾く）。
+      // Date は不正な日を翌月へ繰り上げるため、往復で文字列が一致するかを見る。
+      .refine((s) => {
+        const d = new Date(`${s}T00:00:00Z`);
+        return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+      }, "生年月日が実在しない日付です")
       .optional(),
   ),
   birthPlace: optionalTrimmed(150, "出身地"),
