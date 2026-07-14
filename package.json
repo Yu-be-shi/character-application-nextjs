@@ -57,7 +57,7 @@
     "prettier": "^3.4.2",
     "prisma": "^6.2.0",
     "swagger2openapi": "^7.0.8",
-    "typescript": "^5.7.0",
+    "typescript": "^7.0.2",
     "vitest": "^2.1.8"
   }
 }
